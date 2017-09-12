@@ -1,6 +1,8 @@
 ﻿using System.Configuration;
+using System.IO;
 using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs;
+using Microsoft.Extensions.Configuration;
 using SimpleInjector;
 using SimpleInjector.Lifestyles;
 using Webjobs.Extensions.NetCore.Eventstore;
@@ -18,6 +20,13 @@ namespace Webjobs.Extensions.Eventstore.Sample
                 config.UseDevelopmentSettings();
             }
 
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddEnvironmentVariables();
+
+            IConfigurationRoot configuration = builder.Build();
+            
             var container = new Container();
             container.Options.DefaultScopedLifestyle = new ThreadScopedLifestyle();
             InitíalizeContainer(container);
@@ -26,9 +35,9 @@ namespace Webjobs.Extensions.Eventstore.Sample
             {
                 config.UseEventStore(new EventStoreConfig
                 {
-                    ConnectionString = "ConnectTo=tcp://localhost:1113;HeartbeatTimeout=20000",
-                    Username = "admin",
-                    Password = "changeit",
+                    ConnectionString = $"{configuration["appSettings:EventStoreConnectionString"]}",
+                    Username = $"{configuration["appSettings:EventStoreAdminUser"]}",
+                    Password = $"{configuration["appSettings:EventStoreAdminPassword"]}",
                     LastPosition = new Position(0,0),
                     MaxLiveQueueSize = 500
                 });
