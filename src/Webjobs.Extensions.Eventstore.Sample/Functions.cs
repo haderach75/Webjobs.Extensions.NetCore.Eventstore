@@ -10,12 +10,14 @@ namespace Webjobs.Extensions.Eventstore.Sample
     public class Functions
     {
         private readonly IEventPublisher<ResolvedEvent> _eventPublisher;
-        
+        private const string WebJobDisabledSetting = "WebJobDisabled";
+
         public Functions(IEventPublisher<ResolvedEvent> eventPublisher)
         {
             _eventPublisher = eventPublisher;
         }
-        
+
+        [Disable(WebJobDisabledSetting)]
         [Singleton(Mode = SingletonMode.Listener)]
         public void ProcessQueueMessage([EventTrigger(BatchSize = 10, TimeOutInMilliSeconds = 20)] IEnumerable<ResolvedEvent> events)
         {
@@ -24,7 +26,8 @@ namespace Webjobs.Extensions.Eventstore.Sample
                _eventPublisher.Publish(evt);
             }
         }
-        
+
+        [Disable(WebJobDisabledSetting)]
         public void LiveProcessingStarted([LiveProcessingStarted] LiveProcessingStartedContext context)
         {
             Console.WriteLine("Live started triggered, event stream is now live");
