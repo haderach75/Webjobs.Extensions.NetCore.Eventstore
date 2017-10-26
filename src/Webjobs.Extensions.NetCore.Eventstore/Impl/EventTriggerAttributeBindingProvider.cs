@@ -20,7 +20,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private readonly Func<TAttribute, ITriggeredFunctionExecutor, TraceWriter, Task<IListener>> _listenerBuilder;
         private readonly TraceWriter _trace;
         private readonly JobHostConfiguration _config;
-
+        
         public EventTriggerAttributeBindingProvider(
             Func<TAttribute, ITriggeredFunctionExecutor, TraceWriter, Task<IListener>> listenerBuilder,
             JobHostConfiguration config,
@@ -95,7 +95,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
-                Task<IListener> listener = _parent._listenerBuilder(_attribute, context.Executor, _trace);
+                Task<IListener> listener = _parent._listenerBuilder(_attribute, context.Executor,_trace);
                 return listener;
             }
 

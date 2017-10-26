@@ -57,6 +57,16 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// </summary>
         public int MaxLiveQueueSize { get; set; }
 
+        /// <summary>
+        /// Gets the active event store subscription;
+        /// </summary>
+        public IEventStoreSubscription EventStoreSubscription => _eventStoreSubscription;
+
+        /// <summary>
+        /// Gets or set the pre event filtering, which filters event from reaching the trigger.
+        /// </summary>
+        public IEventFilter EventFilter { get; set; }
+       
         private IEventStoreSubscription _eventStoreSubscription;
         private int _batchSize = 100;
         private int _timeOutInMilliSeconds = 50;
@@ -80,6 +90,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
 
             if (MaxLiveQueueSize == 0)
                 MaxLiveQueueSize = 200;
+            
 
             _eventStoreSubscription = new EventStoreCatchUpSubscriptionObservable(EventStoreConnectionFactory.Create(ConnectionString), 
                 LastPosition,
@@ -100,15 +111,17 @@ namespace Webjobs.Extensions.NetCore.Eventstore
                 liveProcessingStartedBindingProvider);
         }
 
-       private Task<IListener> BuildListener(EventTriggerAttribute attribute,
-            ITriggeredFunctionExecutor executor, TraceWriter trace)
+        private Task<IListener> BuildListener(EventTriggerAttribute attribute,
+                                              ITriggeredFunctionExecutor executor, 
+                                              TraceWriter trace)
         {
             IListener listener;
+            _batchSize = attribute.BatchSize;
             if (EventStoreListenerFactory == null)
             {
-                listener = new EventStoreListener(executor, _eventStoreSubscription, trace)
+                listener = new EventStoreListener(executor, _eventStoreSubscription, EventFilter, trace)
                 {
-                    BatchSize = _batchSize = attribute.BatchSize,
+                    BatchSize = _batchSize,
                     TimeOutInMilliSeconds = _timeOutInMilliSeconds = attribute.TimeOutInMilliSeconds
                 };
             }
@@ -116,7 +129,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
             {
                 listener = EventStoreListenerFactory.Create();
             }
-            return Task.FromResult<IListener>(listener);
+            return Task.FromResult(listener);
         }
 
         private Task<IListener> BuildListener(ITriggeredFunctionExecutor executor, TraceWriter trace)

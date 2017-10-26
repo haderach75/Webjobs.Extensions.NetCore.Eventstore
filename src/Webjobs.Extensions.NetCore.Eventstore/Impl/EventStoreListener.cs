@@ -15,6 +15,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     {
         private readonly ITriggeredFunctionExecutor _executor;
         private IEventStoreSubscription _eventStoreSubscription;
+        private readonly IEventFilter _eventFilter;
         private readonly TraceWriter _trace;
         private CancellationToken _cancellationToken = CancellationToken.None;
         private IDisposable _observable;
@@ -24,19 +25,19 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         
         public EventStoreListener(ITriggeredFunctionExecutor executor, 
                                   IEventStoreSubscription eventStoreSubscription,
+                                  IEventFilter eventFilter,
                                   TraceWriter trace)
         {
             _executor = executor;
             _eventStoreSubscription = eventStoreSubscription;
+            _eventFilter = eventFilter;
             _trace = trace;
         }
         
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            _observable = _eventStoreSubscription
-                .Buffer(TimeSpan.FromMilliseconds(TimeOutInMilliSeconds), BatchSize)
-                .Where(buffer => buffer.Any())
+            _observable = GetObservable()
                 .Subscribe(ProcessEvent, OnCompleted);
 
             _eventStoreSubscription.Connect();
@@ -56,7 +57,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
         private IObservable<IEnumerable<ResolvedEvent>> GetObservable()
         {
-            return _eventStoreSubscription
+            var observable = (IObservable<ResolvedEvent>) _eventStoreSubscription;
+            if (_eventFilter != null)
+                observable = observable.Where(e => _eventFilter.IsProcessable(e));
+
+            return observable
                 .Buffer(TimeSpan.FromMilliseconds(TimeOutInMilliSeconds), BatchSize)
                 .Where(buffer => buffer.Any());
         }

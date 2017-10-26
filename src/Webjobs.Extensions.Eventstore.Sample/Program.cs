@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using System.IO;
 using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs;
@@ -42,7 +43,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
                     MaxLiveQueueSize = 500
                 });
             }
-
+            
             var jobActivator = new SimpleInjectorJobActivator(container);
             config.JobActivator = jobActivator;
             //config.DashboardConnectionString = ConfigurationManager.ConnectionStrings["AzureWebJobsDashboard"].ConnectionString;
