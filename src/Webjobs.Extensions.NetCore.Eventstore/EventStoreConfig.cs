@@ -91,7 +91,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore
             if (MaxLiveQueueSize == 0)
                 MaxLiveQueueSize = 200;
             
-
             _eventStoreSubscription = new EventStoreCatchUpSubscriptionObservable(EventStoreConnectionFactory.Create(ConnectionString), 
                 LastPosition,
                 MaxLiveQueueSize,
@@ -117,6 +116,10 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         {
             IListener listener;
             _batchSize = attribute.BatchSize;
+
+            if (EventFilter == null)
+                EventFilter = new DefaultEventFilter(_batchSize, trace);
+
             if (EventStoreListenerFactory == null)
             {
                 listener = new EventStoreListener(executor, _eventStoreSubscription, EventFilter, trace)
