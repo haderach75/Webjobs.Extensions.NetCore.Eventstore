@@ -116,10 +116,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         {
             IListener listener;
             _batchSize = attribute.BatchSize;
-
-            if (EventFilter == null)
-                EventFilter = new DefaultEventFilter(_batchSize, trace);
-
+            
             if (EventStoreListenerFactory == null)
             {
                 listener = new EventStoreListener(executor, _eventStoreSubscription, EventFilter, trace)

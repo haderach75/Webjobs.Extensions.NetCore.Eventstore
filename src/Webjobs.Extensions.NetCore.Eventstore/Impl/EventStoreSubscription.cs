@@ -98,13 +98,15 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             return _observable.Connect();
         }
 
-        public void Restart()
+        public void Restart(Position? position)
         {
             _trace.Info("Restarting subscription...");
-            var startPosition = _lastCheckpoint;
+            
             Stop();
-            StartCatchUpSubscription(startPosition);
+            StartCatchUpSubscription(position);
         }
+
+
 
         private Task EventAppeared(EventStoreCatchUpSubscription sub, ResolvedEvent resolvedEvent)
         {
@@ -138,7 +140,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             var msg = (e?.Message + " " + (e?.InnerException?.Message ?? "")).TrimEnd();
             _trace.Warning($"Subscription dropped because {reason}: {msg}");
             if (reason == SubscriptionDropReason.ProcessingQueueOverflow)
-                Restart();
+                Restart(_lastCheckpoint);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs.Host;
 
@@ -7,12 +8,10 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     public class DefaultEventFilter : IEventFilter
     {
-        private readonly TraceWriter _trace;
         private readonly EventBuffer _eventBuffer;
 
-        public DefaultEventFilter(int batchSize, TraceWriter trace)
+        public DefaultEventFilter(int batchSize)
         {
-            _trace = trace;
             _eventBuffer = new EventBuffer(batchSize + 28);
         }
 
@@ -26,7 +25,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             {
                 if (_eventBuffer != null && _eventBuffer.Contains(evt.EventId))
                 {
-                    _trace.Warning($"Duplicate event {evt.EventType} {evt.EventId} in stream {evt.EventNumber}@{evt.EventStreamId}. Skipping processing.");
+                    Trace.TraceWarning($"Duplicate event {evt.EventType} {evt.EventId} in stream {evt.EventNumber}@{evt.EventStreamId}. Skipping processing.");
                     return false;
                 }
                 _eventBuffer?.Add(evt.EventId);
