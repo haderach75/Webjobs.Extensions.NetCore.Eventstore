@@ -30,7 +30,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// If not position is supplied, the subscription will start from 
         /// the beginning.
         /// </summary>
-        public Position? LastPosition { get; set; }
+        public Func<Position?> LastPosition { get; set; }
 
         /// <summary>
         /// Factory used to create an event store listener.
@@ -79,7 +79,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         {
             if (context == null)
             {
-                throw new ArgumentNullException("context");
+                throw new ArgumentNullException(nameof(context));
             }
 
             if (EventStoreConnectionFactory == null)
@@ -90,9 +90,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore
 
             if (MaxLiveQueueSize == 0)
                 MaxLiveQueueSize = 200;
-            
-            _eventStoreSubscription = new EventStoreCatchUpSubscriptionObservable(EventStoreConnectionFactory.Create(ConnectionString), 
-                LastPosition,
+
+            var lastPosition = LastPosition?.Invoke();
+           
+            _eventStoreSubscription = new EventStoreCatchUpSubscriptionObservable(EventStoreConnectionFactory.Create(ConnectionString),
+                lastPosition,
                 MaxLiveQueueSize,
                 UserCredentialFactory.CreateAdminCredentials(Username, Password), 
                 context.Trace);

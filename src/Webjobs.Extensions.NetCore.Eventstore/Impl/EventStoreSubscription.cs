@@ -106,8 +106,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             StartCatchUpSubscription(position);
         }
 
-
-
         private Task EventAppeared(EventStoreCatchUpSubscription sub, ResolvedEvent resolvedEvent)
         {
             if (_cancellationToken != CancellationToken.None && _cancellationToken.IsCancellationRequested)
