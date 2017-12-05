@@ -39,7 +39,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
                     ConnectionString = $"{configuration["appSettings:EventStoreConnectionString"]}",
                     Username = $"{configuration["appSettings:EventStoreAdminUser"]}",
                     Password = $"{configuration["appSettings:EventStoreAdminPassword"]}",
-                    LastPosition = new Position(0,0),
+                    LastPosition = () => new Position(0,0),
                     MaxLiveQueueSize = 500
                 });
             }
