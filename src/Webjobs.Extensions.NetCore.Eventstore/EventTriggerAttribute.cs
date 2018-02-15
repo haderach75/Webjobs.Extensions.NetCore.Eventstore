@@ -15,6 +15,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// Default value is 100
         /// </summary>
         public int BatchSize { get; set; }
+        
+        /// <summary>
+        /// The name of the stream to subscribe to.
+        /// </summary>
+        public string Stream { get; set; }
 
         /// <summary>
         /// 

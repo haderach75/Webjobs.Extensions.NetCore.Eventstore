@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Reactive.Linq;
 using EventStore.ClientAPI;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
@@ -13,9 +14,14 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         {
             _eventBuffer = new EventBuffer(batchSize + 28);
         }
+        
+        public IObservable<ResolvedEvent> Filter(IObservable<ResolvedEvent> eventStreamObservable)
+        {
+            return eventStreamObservable.Where(IsProcessable);
+        }
 
         private static readonly object LockObj = new object();
-        public bool IsProcessable(ResolvedEvent e)
+        private bool IsProcessable(ResolvedEvent e)
         {
             var evt = e.Event;
             if (e.OriginalStreamId.StartsWith("$")) return false;

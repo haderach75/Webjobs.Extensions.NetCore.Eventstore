@@ -15,19 +15,23 @@ using Microsoft.Azure.WebJobs.Host.Triggers;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
-    internal class EventTriggerAttributeBindingProvider<TAttribute> : ITriggerBindingProvider where TAttribute : Attribute
+    internal class EventTriggerAttributeBindingProvider : ITriggerBindingProvider
     {
-        private readonly Func<TAttribute, ITriggeredFunctionExecutor, TraceWriter, Task<IListener>> _listenerBuilder;
         private readonly TraceWriter _trace;
-        private readonly JobHostConfiguration _config;
+        private readonly INameResolver _nameResolver;
+        private readonly EventStoreConfig _eventStoreConfig;
+        private readonly IObserver<IEnumerable<ResolvedEvent>> _observer;
+        public EventTriggerAttribute Attribute { get; private set; }
         
         public EventTriggerAttributeBindingProvider(
-            Func<TAttribute, ITriggeredFunctionExecutor, TraceWriter, Task<IListener>> listenerBuilder,
-            JobHostConfiguration config,
+            INameResolver nameResolver,
+            EventStoreConfig eventStoreConfig,
+            IObserver<IEnumerable<ResolvedEvent>> observer,
             TraceWriter trace)
         {
-            _listenerBuilder = listenerBuilder;
-            _config = config;
+            _nameResolver = nameResolver ?? throw new ArgumentNullException(nameof(nameResolver));
+            _eventStoreConfig = eventStoreConfig ?? throw new ArgumentNullException(nameof(eventStoreConfig));
+            _observer = observer;
             _trace = trace;
         }
 
@@ -35,15 +39,17 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         {
             if (context == null)
             {
-                throw new ArgumentNullException("context");
+                throw new ArgumentNullException(nameof(context));
             }
-
+            
             ParameterInfo parameter = context.Parameter;
-            var attribute = parameter.GetCustomAttribute<TAttribute>(inherit: false);
-            if (attribute == null)
+            Attribute = parameter.GetCustomAttribute<EventTriggerAttribute>(inherit: false);
+            if (Attribute == null)
             {
                 return Task.FromResult<ITriggerBinding>(null);
             }
+            
+            Attribute.Stream = Resolve(Attribute.Stream);
             
             if (parameter.ParameterType != typeof(EventTriggerData) &&
                 parameter.ParameterType != typeof(IEnumerable<ResolvedEvent>))
@@ -52,29 +58,39 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                     "Can't bind EventTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
             
-            return Task.FromResult<ITriggerBinding>(new EventTriggerBinding(_config, parameter, attribute, _trace, this));
+            return Task.FromResult<ITriggerBinding>(new EventTriggerBinding(_eventStoreConfig, parameter, Attribute, _observer,  _trace));
+        }
+        
+        private string Resolve(string queueName)
+        {
+            if (_nameResolver == null)
+            {
+                return queueName;
+            }
+
+            return _nameResolver.ResolveWholeString(queueName);
         }
         
         private class EventTriggerBinding : ITriggerBinding
         {
-            private readonly JobHostConfiguration _config;
+            private readonly EventStoreConfig _eventStoreConfig;
             private readonly ParameterInfo _parameter;
-            private readonly TAttribute _attribute;
+            private readonly EventTriggerAttribute _attribute;
+            private readonly IObserver<IEnumerable<ResolvedEvent>> _observer;
             private readonly TraceWriter _trace;
-            private readonly EventTriggerAttributeBindingProvider<TAttribute> _parent;
-
-            public EventTriggerBinding(JobHostConfiguration config,
-                ParameterInfo parameter,
-                TAttribute attribute,
-                TraceWriter trace,
-                EventTriggerAttributeBindingProvider<TAttribute> parent)
+            
+            public EventTriggerBinding(EventStoreConfig eventStoreConfig,
+                                       ParameterInfo parameter,
+                                       EventTriggerAttribute attribute,
+                                       IObserver<IEnumerable<ResolvedEvent>> observer,
+                                       TraceWriter trace)
             {
-                _config = config;
+                _eventStoreConfig = eventStoreConfig;
                 _parameter = parameter;
                 _attribute = attribute;
+                _observer = observer;
                 _trace = trace;
                 BindingDataContract = CreateBindingDataContract();
-                _parent = parent;
             }
 
             public IReadOnlyDictionary<string, Type> BindingDataContract { get; }
@@ -95,8 +111,16 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
-                Task<IListener> listener = _parent._listenerBuilder(_attribute, context.Executor,_trace);
-                return listener;
+                var eventStoreSubscription = _eventStoreConfig.EventStoreSubscriptionFactory.Create(_eventStoreConfig, _trace, _attribute.Stream);
+                
+                IListener listener = new EventStoreListener(context.Executor,
+                                                     eventStoreSubscription,
+                                                    _eventStoreConfig.EventFilter,
+                                                    _observer,
+                                                    _attribute.BatchSize,
+                                                    _attribute.TimeOutInMilliSeconds,
+                                                    _trace);
+                return Task.FromResult(listener);
             }
 
             public ParameterDescriptor ToParameterDescriptor()

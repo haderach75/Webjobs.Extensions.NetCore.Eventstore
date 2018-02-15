@@ -1,8 +1,8 @@
 using System;
-using System.Linq;
-using System.Reactive.Linq;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
@@ -12,34 +12,25 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     public class LiveProcessingStartedListener : IListener
     {
         private readonly ITriggeredFunctionExecutor _executor;
-        private IEventStoreSubscription _eventStoreSubscription;
-        private readonly int _batchSize;
-        private readonly int _timeoutInMilliseconds;
+        private readonly IObservable<IEnumerable<ResolvedEvent>> _observable;
         private readonly TraceWriter _trace;
         private CancellationToken _cancellationToken = CancellationToken.None;
-        private IDisposable _observable;
+        private IDisposable _observer;
         
         public LiveProcessingStartedListener(ITriggeredFunctionExecutor executor,
-            IEventStoreSubscription eventStoreSubscription,
-            int batchSize,
-            int timeoutInMilliseconds,
-            TraceWriter trace)
+                                             IObservable<IEnumerable<ResolvedEvent>> observable,
+                                             TraceWriter trace)
         {
             _executor = executor;
-            _eventStoreSubscription = eventStoreSubscription;
-            _batchSize = batchSize;
-            _timeoutInMilliseconds = timeoutInMilliseconds;
+            _observable = observable;
             _trace = trace;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            _observable = _eventStoreSubscription
-                .Buffer(TimeSpan.FromMilliseconds(_timeoutInMilliseconds), _batchSize)
-                .Where(buffer => buffer.Any()).Subscribe(x => {}, OnCompleted);
-            _eventStoreSubscription.Start(cancellationToken);
-
+            _observer = _observable.Subscribe(events => { }, OnCompleted);
+            
             return Task.FromResult(true);
         }
 
@@ -55,8 +46,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         public Task StopAsync(CancellationToken cancellationToken)
         {
             _trace.Info("Stopping LiveProcessingStartedListener.");
-            _observable.Dispose();
-            _eventStoreSubscription.Stop();
+            _observer.Dispose();
             _trace.Info("LiveProcessingStartedListener stopped.");
 
             return Task.FromResult(true);
@@ -65,8 +55,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         public void Cancel()
         {
             _trace.Info("Cancelling LiveProcessingStartedListener listener.");
-            _observable?.Dispose();
-            _eventStoreSubscription?.Stop();
+            _observer?.Dispose();
         }
 
         private bool _isDisposed;
@@ -86,7 +75,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             if (isDisposing)
             {
                 Cancel();
-                _eventStoreSubscription = null;
             }
             GC.SuppressFinalize(this);
         }

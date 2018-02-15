@@ -1,13 +1,13 @@
-using System.Reactive.Subjects;
+using System;
 using System.Threading;
 using EventStore.ClientAPI;
 
 namespace Webjobs.Extensions.NetCore.Eventstore
 {
-    public interface IEventStoreSubscription : IConnectableObservable<ResolvedEvent>
+    public interface IEventStoreSubscription : IObservable<ResolvedEvent>
     {
         void Start(CancellationToken token, int batchSize = 200);
-        void Restart(Position? position);
+        void Restart(long? position);
         void Stop();
     }
 }

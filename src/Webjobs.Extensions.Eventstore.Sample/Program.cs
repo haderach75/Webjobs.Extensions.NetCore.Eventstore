@@ -39,15 +39,13 @@ namespace Webjobs.Extensions.Eventstore.Sample
                     ConnectionString = $"{configuration["appSettings:EventStoreConnectionString"]}",
                     Username = $"{configuration["appSettings:EventStoreAdminUser"]}",
                     Password = $"{configuration["appSettings:EventStoreAdminPassword"]}",
-                    LastPosition = () => new Position(0,0),
+                    LastPosition = new Position(0,0),
                     MaxLiveQueueSize = 500
                 });
             }
             
             var jobActivator = new SimpleInjectorJobActivator(container);
             config.JobActivator = jobActivator;
-            //config.DashboardConnectionString = ConfigurationManager.ConnectionStrings["AzureWebJobsDashboard"].ConnectionString;
-            //config.StorageConnectionString = ConfigurationManager.ConnectionStrings["AzureWebJobsStorage"].ConnectionString;
             var host = new JobHost(config);
             host.RunAndBlock();
         }

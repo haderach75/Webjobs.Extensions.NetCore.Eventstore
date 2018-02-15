@@ -19,7 +19,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
 
         [Disable(WebJobDisabledSetting)]
         [Singleton(Mode = SingletonMode.Listener)]
-        public void ProcessQueueMessage([EventTrigger(BatchSize = 10, TimeOutInMilliSeconds = 20)] IEnumerable<ResolvedEvent> events)
+        public void ProcessQueueMessage([EventTrigger(BatchSize = 10, TimeOutInMilliSeconds = 20, Stream = "customer-stream")] IEnumerable<ResolvedEvent> events)
         {
             foreach (var evt in events)
             {
