@@ -1,6 +1,6 @@
-# Azure Webjobs Eventstore extension
+# :NetCore Azure Webjobs extension for EventStore.
 
-This repo contains binding extension for the Eventstore (https://github.com/EventStore/EventStore).
+This repo contains .NetCore binding extension for the Eventstore (https://github.com/EventStore/EventStore).
 
 ## Getting Started
 
