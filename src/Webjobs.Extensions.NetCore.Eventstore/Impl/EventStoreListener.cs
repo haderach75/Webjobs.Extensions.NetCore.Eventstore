@@ -5,9 +5,10 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
+using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
@@ -17,28 +18,28 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private IEventStoreSubscription _eventStoreSubscription;
         private readonly IEventFilter _eventFilter;
         private readonly IObserver<IEnumerable<ResolvedEvent>> _observer;
-        private readonly TraceWriter _trace;
         private CancellationToken _cancellationToken = CancellationToken.None;
         private IDisposable _observable;
+        private readonly ILogger _logger;
 
-        public int TimeOutInMilliSeconds { get; }
-        public int BatchSize { get; }
+        private readonly int _timeOutInMilliSeconds;
+        private readonly int _batchSize;
         
         public EventStoreListener(ITriggeredFunctionExecutor executor, 
                                   IEventStoreSubscription eventStoreSubscription,
                                   IEventFilter eventFilter,
                                   IObserver<IEnumerable<ResolvedEvent>> observer,
                                   int batchSize,
-                                  int timeOutInMilliSeconds,
-                                  TraceWriter trace)
+                                  int timeOutInMilliSeconds, 
+                                  ILogger logger)
         {
-            BatchSize = batchSize;
-            TimeOutInMilliSeconds = timeOutInMilliSeconds;
+            _batchSize = batchSize;
+            _timeOutInMilliSeconds = timeOutInMilliSeconds;
+            _logger = logger;
             _executor = executor;
             _eventStoreSubscription = eventStoreSubscription;
             _eventFilter = eventFilter;
             _observer = observer;
-           _trace = trace;
         }
         
         public Task StartAsync(CancellationToken cancellationToken)
@@ -47,15 +48,15 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             _observable = GetObservable()
                 .Subscribe(ProcessEvent, OnCompleted);
             
-            _trace.Info("Observable subscription started.");
+            _logger.LogInformation("Observable subscription started.");
 
-            _eventStoreSubscription.Start(cancellationToken, BatchSize);
+            _eventStoreSubscription.Start(cancellationToken, _batchSize);
             return Task.FromResult(true);
         }
 
         private IDisposable RestartSubscription()
         {
-            _trace.Info("Restarting observable subscription.");
+            _logger.LogInformation("Restarting observable subscription.");
             _observable = GetObservable().Catch(GetObservable()).Subscribe(ProcessEvent);
             return _observable;
         }
@@ -67,7 +68,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 observable = _eventFilter.Filter(observable);
             
             return observable
-                .Buffer(TimeSpan.FromMilliseconds(TimeOutInMilliSeconds), BatchSize)
+                .Buffer(TimeSpan.FromMilliseconds(_timeOutInMilliSeconds), _batchSize)
                 .Where(buffer => buffer.Any());
         }
         
@@ -79,10 +80,10 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _trace.Info("Stopping event listener.");
+            _logger.LogInformation("Stopping event listener.");
             _observable.Dispose();
             _eventStoreSubscription.Stop();
-            _trace.Info("Event listener stopped.");
+            _logger.LogInformation("Event listener stopped.");
 
             return Task.FromResult(true);
         }
@@ -98,7 +99,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         
         public void Cancel()
         {
-            _trace.Info("Cancelling event listener.");
+            _logger.LogInformation("Cancelling event listener.");
             _observable?.Dispose();
             _eventStoreSubscription?.Stop();
         }
@@ -108,11 +109,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         {
             if (!_isDisposed)
             {
-                _trace.Info("Disposing event listener.");
+                _logger.LogInformation("Disposing event listener.");
                 Dispose(true);
             }
             _isDisposed = true;
-            _trace.Info("Event listener disposed.");
+            _logger.LogInformation("Event listener disposed.");
         }
 
         private void Dispose(bool isDisposing)

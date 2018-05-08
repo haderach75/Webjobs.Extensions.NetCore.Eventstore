@@ -1,7 +1,5 @@
-﻿using System;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.SystemData;
-using Microsoft.Azure.WebJobs.Host;
+﻿using EventStore.ClientAPI.SystemData;
+using Microsoft.Extensions.Logging;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
@@ -9,7 +7,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     {
         private IEventStoreSubscription _eventStoreSubscription;
         
-        public IEventStoreSubscription Create(EventStoreConfig eventStoreConfig, TraceWriter traceWriter, string stream = null)
+        public IEventStoreSubscription Create(EventStoreConfig eventStoreConfig, ILoggerFactory loggerFactory, string stream = null)
         {
             if (_eventStoreSubscription == null)
             {
@@ -20,14 +18,12 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                     ? (IEventStoreSubscription) new EventStoreCatchUpSubscriptionObservable(eventStoreConnection,
                         commitedPosition,
                         eventStoreConfig.MaxLiveQueueSize,
-                        userCredentials, 
-                        traceWriter)
+                        userCredentials, loggerFactory.CreateLogger<EventStoreCatchUpSubscriptionObservable>())
                     : new EventStoreStreamCatchUpSubscriptionObservable(eventStoreConnection,
                         stream,
                         commitedPosition,
                         eventStoreConfig.MaxLiveQueueSize,
-                        userCredentials,
-                        traceWriter);
+                        userCredentials, loggerFactory.CreateLogger<EventStoreStreamCatchUpSubscriptionObservable>());
             }
             return _eventStoreSubscription;
         }

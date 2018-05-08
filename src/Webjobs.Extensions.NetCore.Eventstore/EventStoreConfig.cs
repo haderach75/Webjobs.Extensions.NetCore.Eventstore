@@ -95,9 +95,9 @@ namespace Webjobs.Extensions.NetCore.Eventstore
                 EventStoreSubscriptionFactory = new EventStoreSubscriptionFactory();
 
             var subject = new Subject<IEnumerable<ResolvedEvent>>();
-            var triggerBindingProvider = new EventTriggerAttributeBindingProvider(context.Config.NameResolver, this, subject, context.Trace);
+            var triggerBindingProvider = new EventTriggerAttributeBindingProvider(context.Config.NameResolver, this, subject, context.Config.LoggerFactory);
             
-            var liveProcessingStartedBindingProvider = new LiveProcessingStartedAttributeBindingProvider(subject, context.Trace);
+            var liveProcessingStartedBindingProvider = new LiveProcessingStartedAttributeBindingProvider(subject, context.Config.LoggerFactory);
 
             // Register our extension binding providers
             context.Config.RegisterBindingExtensions(
