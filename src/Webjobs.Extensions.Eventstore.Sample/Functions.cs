@@ -18,7 +18,6 @@ namespace Webjobs.Extensions.Eventstore.Sample
         }
 
         [Disable(WebJobDisabledSetting)]
-        [Singleton(Mode = SingletonMode.Listener)]
         public void ProcessQueueMessage([EventTrigger(BatchSize = 10, TimeOutInMilliSeconds = 20)] IObservable<ResolvedEvent> events)
         {
             events.Subscribe(e => _eventPublisher.Publish(e));
