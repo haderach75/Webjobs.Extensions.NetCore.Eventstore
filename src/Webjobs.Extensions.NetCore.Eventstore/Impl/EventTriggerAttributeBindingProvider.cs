@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reactive.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
@@ -8,31 +9,31 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Bindings;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Bindings;
-using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using Microsoft.Extensions.Logging;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     internal class EventTriggerAttributeBindingProvider : ITriggerBindingProvider
     {
-        private readonly TraceWriter _trace;
         private readonly INameResolver _nameResolver;
         private readonly EventStoreConfig _eventStoreConfig;
         private readonly IObserver<IEnumerable<ResolvedEvent>> _observer;
-        public EventTriggerAttribute Attribute { get; private set; }
+        private readonly ILoggerFactory _loggerFactory;
+        private EventTriggerAttribute _attribute;
         
         public EventTriggerAttributeBindingProvider(
             INameResolver nameResolver,
             EventStoreConfig eventStoreConfig,
             IObserver<IEnumerable<ResolvedEvent>> observer,
-            TraceWriter trace)
+            ILoggerFactory loggerFactory)
         {
             _nameResolver = nameResolver ?? throw new ArgumentNullException(nameof(nameResolver));
             _eventStoreConfig = eventStoreConfig ?? throw new ArgumentNullException(nameof(eventStoreConfig));
             _observer = observer;
-            _trace = trace;
+            _loggerFactory = loggerFactory;
         }
 
         public Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
@@ -43,22 +44,22 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             }
             
             ParameterInfo parameter = context.Parameter;
-            Attribute = parameter.GetCustomAttribute<EventTriggerAttribute>(inherit: false);
-            if (Attribute == null)
+            _attribute = parameter.GetCustomAttribute<EventTriggerAttribute>(inherit: false);
+            if (_attribute == null)
             {
                 return Task.FromResult<ITriggerBinding>(null);
             }
             
-            Attribute.Stream = Resolve(Attribute.Stream);
+            _attribute.Stream = Resolve(_attribute.Stream);
             
             if (parameter.ParameterType != typeof(EventTriggerData) &&
-                parameter.ParameterType != typeof(IEnumerable<ResolvedEvent>))
+                parameter.ParameterType != typeof(IEnumerable<ResolvedEvent>) &&
+                parameter.ParameterType != typeof(IObservable<ResolvedEvent>))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind EventTriggerAttribute to type '{0}'.", parameter.ParameterType));
             }
-            
-            return Task.FromResult<ITriggerBinding>(new EventTriggerBinding(_eventStoreConfig, parameter, Attribute, _observer,  _trace));
+            return Task.FromResult<ITriggerBinding>(new EventTriggerBinding(_eventStoreConfig, parameter, _attribute, _observer, _loggerFactory));
         }
         
         private string Resolve(string queueName)
@@ -77,19 +78,19 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             private readonly ParameterInfo _parameter;
             private readonly EventTriggerAttribute _attribute;
             private readonly IObserver<IEnumerable<ResolvedEvent>> _observer;
-            private readonly TraceWriter _trace;
-            
+            private readonly ILoggerFactory _loggerFactory;
+
             public EventTriggerBinding(EventStoreConfig eventStoreConfig,
                                        ParameterInfo parameter,
                                        EventTriggerAttribute attribute,
                                        IObserver<IEnumerable<ResolvedEvent>> observer,
-                                       TraceWriter trace)
+                                       ILoggerFactory loggerFactory)
             {
                 _eventStoreConfig = eventStoreConfig;
                 _parameter = parameter;
                 _attribute = attribute;
                 _observer = observer;
-                _trace = trace;
+                _loggerFactory = loggerFactory;
                 BindingDataContract = CreateBindingDataContract();
             }
 
@@ -111,7 +112,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
-                var eventStoreSubscription = _eventStoreConfig.EventStoreSubscriptionFactory.Create(_eventStoreConfig, _trace, _attribute.Stream);
+                var eventStoreSubscription = _eventStoreConfig.EventStoreSubscriptionFactory.Create(_eventStoreConfig, _loggerFactory, _attribute.Stream);
                 
                 IListener listener = new EventStoreListener(context.Executor,
                                                      eventStoreSubscription,
@@ -119,7 +120,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                                                     _observer,
                                                     _attribute.BatchSize,
                                                     _attribute.TimeOutInMilliSeconds,
-                                                    _trace);
+                                                    _loggerFactory.CreateLogger<EventStoreListener>());
                 return Task.FromResult(listener);
             }
 
@@ -143,6 +144,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 bindingData.Add("EventTrigger", value);
                 bindingData.Add("EventTriggerData", value);
                 bindingData.Add("IEnumerable<ResolvedEvent>", value.Events);
+                bindingData.Add("IObservable<ResolvedEvent>", value.Events.ToObservable());
 
                 return bindingData;
             }
@@ -175,16 +177,19 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
                 public override Task<object> GetValueAsync()
                 {
+                    var triggerData = (EventStoreTriggerValue)_value;
                     if (Type == typeof(EventTriggerData))
                     {
-                        var triggerData = (EventStoreTriggerValue) _value;
                         var data = new EventTriggerData(triggerData.Events);
                         return Task.FromResult<object>(data);
                     }
                     if (Type == typeof(IEnumerable<ResolvedEvent>))
                     {
-                        var triggerData = (EventStoreTriggerValue)_value;
                         return Task.FromResult<object>(triggerData.Events);
+                    }
+                    if (Type == typeof(IObservable<ResolvedEvent>))
+                    {
+                        return Task.FromResult<object>(triggerData.Events.ToObservable());
                     }
                     return Task.FromResult(_value);
                 }

@@ -1,7 +1,8 @@
 using System;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.SystemData;
-using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
@@ -11,7 +12,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             long? lastCheckpoint,
             int maxLiveQueueMessage,
             UserCredentials userCredentials,
-            TraceWriter trace) : base(connection, lastCheckpoint, maxLiveQueueMessage, userCredentials, trace)
+            ILogger logger) : base(connection, lastCheckpoint, maxLiveQueueMessage, userCredentials, logger)
         {
         }
         
@@ -30,7 +31,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 SubscriptionDropped,
                 UserCredentials);
             
-            Trace.Info($"Catch-up subscription started from checkpoint {startPosition} at {DateTime.Now}.");
+            Logger.LogInformation($"Catch-up subscription started from checkpoint {startPosition} at {DateTime.Now}.");
         }
     }
 }

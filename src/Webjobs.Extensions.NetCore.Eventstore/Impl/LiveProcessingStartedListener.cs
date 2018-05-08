@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
+using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
@@ -13,17 +14,17 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     {
         private readonly ITriggeredFunctionExecutor _executor;
         private readonly IObservable<IEnumerable<ResolvedEvent>> _observable;
-        private readonly TraceWriter _trace;
+        private readonly ILogger _logger;
         private CancellationToken _cancellationToken = CancellationToken.None;
         private IDisposable _observer;
         
         public LiveProcessingStartedListener(ITriggeredFunctionExecutor executor,
                                              IObservable<IEnumerable<ResolvedEvent>> observable,
-                                             TraceWriter trace)
+                                             ILogger logger)
         {
             _executor = executor;
             _observable = observable;
-            _trace = trace;
+            _logger = logger;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -45,16 +46,16 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _trace.Info("Stopping LiveProcessingStartedListener.");
+            _logger.LogInformation("Stopping LiveProcessingStartedListener.");
             _observer.Dispose();
-            _trace.Info("LiveProcessingStartedListener stopped.");
+            _logger.LogInformation("LiveProcessingStartedListener stopped.");
 
             return Task.FromResult(true);
         }
 
         public void Cancel()
         {
-            _trace.Info("Cancelling LiveProcessingStartedListener listener.");
+            _logger.LogInformation("Cancelling LiveProcessingStartedListener listener.");
             _observer?.Dispose();
         }
 
@@ -63,11 +64,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         {
             if (!_isDisposed)
             {
-                _trace.Info("Disposing LiveProcessingStartedListener.");
+                _logger.LogInformation("Disposing LiveProcessingStartedListener.");
                 Dispose(true);
             }
             _isDisposed = true;
-            _trace.Info("LiveProcessingStartedListener disposed.");
+            _logger.LogInformation("LiveProcessingStartedListener disposed.");
         }
 
         private void Dispose(bool isDisposing)

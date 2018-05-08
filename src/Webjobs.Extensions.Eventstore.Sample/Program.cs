@@ -4,6 +4,7 @@ using System.IO;
 using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SimpleInjector;
 using SimpleInjector.Lifestyles;
 using Webjobs.Extensions.NetCore.Eventstore;
@@ -30,10 +31,11 @@ namespace Webjobs.Extensions.Eventstore.Sample
             
             var container = new Container();
             container.Options.DefaultScopedLifestyle = new ThreadScopedLifestyle();
-            InitíalizeContainer(container);
+            
            
             using (ThreadScopedLifestyle.BeginScope(container))
             {
+                InitíalizeContainer(container);
                 config.UseEventStore(new EventStoreConfig
                 {
                     ConnectionString = $"{configuration["appSettings:EventStoreConnectionString"]}",
@@ -46,6 +48,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
             
             var jobActivator = new SimpleInjectorJobActivator(container);
             config.JobActivator = jobActivator;
+            config.LoggerFactory = new LoggerFactory().AddConsole();
             var host = new JobHost(config);
             host.RunAndBlock();
         }

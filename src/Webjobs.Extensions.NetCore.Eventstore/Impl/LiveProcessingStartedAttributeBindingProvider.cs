@@ -5,25 +5,24 @@ using System.Reflection;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs.Extensions.Bindings;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.Host.Bindings;
-using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Azure.WebJobs.Host.Listeners;
 using Microsoft.Azure.WebJobs.Host.Protocols;
 using Microsoft.Azure.WebJobs.Host.Triggers;
+using Microsoft.Extensions.Logging;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     internal class LiveProcessingStartedAttributeBindingProvider : ITriggerBindingProvider
     {
         private readonly IObservable<IEnumerable<ResolvedEvent>> _observable;
-        private readonly TraceWriter _traceWriter;
+        private readonly ILoggerFactory _loggerFactory;
         
         public LiveProcessingStartedAttributeBindingProvider(IObservable<IEnumerable<ResolvedEvent>> observable, 
-                                                             TraceWriter traceWriter)
+                                                             ILoggerFactory loggerFactory)
         {
             _observable = observable;
-            _traceWriter = traceWriter ?? throw new ArgumentNullException(nameof(traceWriter));
+            _loggerFactory = loggerFactory;
         }
 
         public Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
@@ -46,20 +45,22 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                     "Can't bind LiveProcessingStartedAttribute to type '{0}'.", parameter.ParameterType));
             }
 
-            return Task.FromResult<ITriggerBinding>(new LiveProcessingStartedTriggerBinding(_observable, parameter, _traceWriter));
+            return Task.FromResult<ITriggerBinding>(new LiveProcessingStartedTriggerBinding(_observable, parameter, _loggerFactory));
         }
 
         internal class LiveProcessingStartedTriggerBinding : ITriggerBinding
         {
             private readonly IObservable<IEnumerable<ResolvedEvent>> _observable;
             private readonly ParameterInfo _parameter;
-            private readonly TraceWriter _trace;
-            
-            public LiveProcessingStartedTriggerBinding(IObservable<IEnumerable<ResolvedEvent>> observable, ParameterInfo parameter, TraceWriter trace)
+            private readonly ILoggerFactory _loggerFactory;
+
+            public LiveProcessingStartedTriggerBinding(IObservable<IEnumerable<ResolvedEvent>> observable, 
+                                                       ParameterInfo parameter,
+                                                       ILoggerFactory loggerFactory)
             {
                 _observable = observable;
                 _parameter = parameter;
-                _trace = trace;
+                _loggerFactory = loggerFactory;
                 BindingDataContract = CreateBindingDataContract();
             }
 
@@ -82,8 +83,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
                 IListener listener = new LiveProcessingStartedListener(context.Executor,
-                    _observable,
-                    _trace);
+                    _observable, _loggerFactory.CreateLogger<LiveProcessingStartedListener>());
                 return Task.FromResult(listener);
             }
             

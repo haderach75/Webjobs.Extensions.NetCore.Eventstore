@@ -5,7 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.SystemData;
-using Microsoft.Azure.WebJobs.Host;
+using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
@@ -14,7 +15,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         protected EventStoreCatchUpSubscription Subscription;
         protected readonly Lazy<IEventStoreConnection> Connection;
         protected readonly UserCredentials UserCredentials;
-        protected readonly TraceWriter Trace;
         private long? _lastCheckpoint;
         protected int BatchSize;
         protected readonly int MaxLiveQueueMessage;
@@ -24,16 +24,17 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private IConnectableObservable<ResolvedEvent> _observable;
         protected bool OnCompletedFired;
         protected bool IsStarted;
+        protected readonly ILogger Logger;
         
         protected EventStoreStreamSubscriptionObservableBase(Lazy<IEventStoreConnection> connection, 
             long? lastCheckpoint,
             int maxLiveQueueMessage,
-            UserCredentials userCredentials,
-            TraceWriter trace)
+            UserCredentials userCredentials, 
+            ILogger logger)
         {
             _lastCheckpoint = lastCheckpoint;
             UserCredentials = userCredentials;
-            Trace = trace;
+            Logger = logger;
             Connection = connection;
             MaxLiveQueueMessage = maxLiveQueueMessage;
 
@@ -57,13 +58,13 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             try
             {
                 var timeout = TimeSpan.FromSeconds(5);
-                Trace.Info($"Stopping subscription with timeout {timeout}...");
+                Logger.LogInformation($"Stopping subscription with timeout {timeout}...");
                 Subscription?.Stop(timeout);
-                Trace.Info("Subscription stopped");
+                Logger.LogInformation("Subscription stopped");
             }
             catch (TimeoutException)
             {
-                Trace.Warning("The subscription did not stop within the specified time.");
+                Logger.LogWarning("The subscription did not stop within the specified time.");
             }
             IsStarted = false;
         }
@@ -85,7 +86,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
         public virtual void Restart(long? position)
         {
-            Trace.Info("Restarting subscription...");
+            Logger.LogInformation("Restarting subscription...");
             
             Stop();
             StartCatchUpSubscription(position);
@@ -111,7 +112,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             }
             catch (Exception e)
             {
-                Trace.Error($"Exception occured in subsciption: {e.Message}");
+                Logger.LogError($"Exception occured in subsciption: {e.Message}");
                 _subject.OnError(e);
             }
             return Task.CompletedTask;
@@ -134,7 +135,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         protected virtual void SubscriptionDropped(EventStoreCatchUpSubscription sub, SubscriptionDropReason reason, Exception e)
         {
             var msg = (e?.Message + " " + (e?.InnerException?.Message ?? "")).TrimEnd();
-            Trace.Warning($"Subscription dropped because {reason}: {msg}");
+            Logger.LogWarning($"Subscription dropped because {reason}: {msg}");
             if (reason == SubscriptionDropReason.ProcessingQueueOverflow)
                 Restart(_lastCheckpoint);
         }
