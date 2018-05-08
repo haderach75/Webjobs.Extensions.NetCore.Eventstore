@@ -12,7 +12,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
         {
             var json = Encoding.UTF8.GetString(item.OriginalEvent.Data);
             JsonConvert.DeserializeObject<Event>(json);
-            Console.WriteLine($"Deserialized message: {json}");
+            Console.WriteLine($"Message as JSON: {json}");
         }
     }
 }
