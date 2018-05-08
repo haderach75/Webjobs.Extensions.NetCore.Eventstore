@@ -167,7 +167,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             private class EventStoreTriggerValueBinder : ValueBinder
             {
-                private readonly object _value;
+                private readonly EventStoreTriggerValue _value;
 
                 public EventStoreTriggerValueBinder(ParameterInfo parameter, EventStoreTriggerValue value)
                     : base(parameter.ParameterType)
@@ -177,21 +177,20 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
                 public override Task<object> GetValueAsync()
                 {
-                    var triggerData = (EventStoreTriggerValue)_value;
                     if (Type == typeof(EventTriggerData))
                     {
-                        var data = new EventTriggerData(triggerData.Events);
+                        var data = new EventTriggerData(_value.Events);
                         return Task.FromResult<object>(data);
                     }
                     if (Type == typeof(IEnumerable<ResolvedEvent>))
                     {
-                        return Task.FromResult<object>(triggerData.Events);
+                        return Task.FromResult<object>(_value.Events);
                     }
                     if (Type == typeof(IObservable<ResolvedEvent>))
                     {
-                        return Task.FromResult<object>(triggerData.Events.ToObservable());
+                        return Task.FromResult<object>(_value.Events.ToObservable());
                     }
-                    return Task.FromResult(_value);
+                    return Task.FromResult<object>(_value);
                 }
 
                 public override string ToInvokeString()
