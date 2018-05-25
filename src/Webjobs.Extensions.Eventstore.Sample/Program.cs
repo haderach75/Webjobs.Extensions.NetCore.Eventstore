@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.IO;
+﻿using System.IO;
 using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Configuration;
@@ -56,33 +55,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
         {
             container.Register<IEventPublisher<ResolvedEvent>, EventPublisher>(Lifestyle.Singleton);
             container.Register(new LoggerFactory().AddConsole, Lifestyle.Singleton);
-            container.RegisterSingleton<Measurement>();
-        }
-    }
-
-    public class Measurement
-    {
-        private readonly Stopwatch _sw = new Stopwatch();
-        private readonly ILogger<Measurement> _logger;
-
-        public Measurement(ILoggerFactory loggerFactory)
-        {
-            _logger = loggerFactory.CreateLogger<Measurement>();
-        }
-
-        public void Start()
-        {
-            if (!_sw.IsRunning)
-            {
-                _sw.Start();
-                _logger.LogInformation("Stopwatch started.");
-            }
-        }
-
-        public void Stop()
-        {
-            _sw.Stop();
-            _logger.LogInformation($"Stopwatch stopped, Catchup complete in {_sw.ElapsedMilliseconds}ms");
+            container.RegisterSingleton<CatchupTimer>();
         }
     }
 }

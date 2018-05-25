@@ -50,6 +50,9 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 return Task.FromResult<ITriggerBinding>(null);
             }
             
+            if(_attribute.BatchSize > 2048)
+                throw new ArgumentException("Batch size is too big, max size 2048");
+            
             _attribute.Stream = Resolve(_attribute.Stream);
             
             if (parameter.ParameterType != typeof(EventTriggerData) &&
@@ -118,7 +121,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                                                      eventStoreSubscription,
                                                     _eventStoreConfig.EventFilter,
                                                     _observer,
-                                                    _attribute.BatchSize,
+                                                    _attribute.BatchSize * 2,
                                                     _attribute.TimeOutInMilliSeconds,
                                                     _loggerFactory.CreateLogger<EventStoreListener>());
                 return Task.FromResult(listener);
