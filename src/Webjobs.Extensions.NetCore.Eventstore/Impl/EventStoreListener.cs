@@ -50,8 +50,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             
             _logger.LogInformation("Observable subscription started.");
 
-            _eventStoreSubscription.Start(cancellationToken, _batchSize);
-            return Task.FromResult(true);
+            return _eventStoreSubscription.StartAsync(cancellationToken, _batchSize);
         }
 
         private IDisposable RestartSubscription()

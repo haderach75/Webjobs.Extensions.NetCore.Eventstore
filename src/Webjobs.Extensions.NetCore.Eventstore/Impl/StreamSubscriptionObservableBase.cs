@@ -1,5 +1,4 @@
 using System;
-using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,10 +9,10 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
-    public abstract class EventStoreStreamSubscriptionObservableBase : IEventStoreSubscription
+    public abstract class SubscriptionObservableBase : IEventStoreSubscription
     {
         protected EventStoreCatchUpSubscription Subscription;
-        protected readonly Lazy<IEventStoreConnection> Connection;
+        protected readonly IEventStoreConnection Connection;
         protected readonly UserCredentials UserCredentials;
         private long? _lastCheckpoint;
         protected int BatchSize;
@@ -21,12 +20,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private CancellationToken _cancellationToken;
         
         private Subject<ResolvedEvent> _subject;
-        private IConnectableObservable<ResolvedEvent> _observable;
         protected bool OnCompletedFired;
         protected bool IsStarted;
         protected readonly ILogger Logger;
         
-        protected EventStoreStreamSubscriptionObservableBase(Lazy<IEventStoreConnection> connection, 
+        protected SubscriptionObservableBase(IEventStoreConnection connection, 
             long? lastCheckpoint,
             int maxLiveQueueMessage,
             UserCredentials userCredentials, 
@@ -39,15 +37,17 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             MaxLiveQueueMessage = maxLiveQueueMessage;
 
             _subject = new Subject<ResolvedEvent>();
-            _observable = _subject.Publish();
         }
         
-        public virtual void Start(CancellationToken cancellationToken, int batchSize = 200)
+        public virtual async Task StartAsync(CancellationToken cancellationToken, int batchSize = 200)
         {
             BatchSize = batchSize;
             _cancellationToken = cancellationToken;
-            if(!IsStarted)
+            if (!IsStarted)
+            {
+                await Connection.ConnectAsync();
                 StartCatchUpSubscription(_lastCheckpoint);
+            }
         }
 
         protected abstract void StartCatchUpSubscription(long? startPosition);
@@ -74,17 +74,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             if (OnCompletedFired)
             {
                 _subject = new Subject<ResolvedEvent>();
-                _observable = _subject.Publish();
             }
             return _subject.Subscribe(observer);
-        }
+        }        
 
-        public virtual IDisposable Connect()
-        {
-            return _observable.Connect();
-        }
-
-        public virtual void Restart(long? position)
+        private void Restart(long? position)
         {
             Logger.LogInformation("Restarting subscription...");
             
@@ -96,8 +90,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         {
             if (_cancellationToken != CancellationToken.None && _cancellationToken.IsCancellationRequested)
             {
-                System.Diagnostics.Trace.TraceInformation("Cancellation requested, stopping subscription...");
-                sub.Stop();
+                Logger.LogInformation("Cancellation requested");
+                Stop();
                 return Task.CompletedTask;
             }
 

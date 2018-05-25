@@ -5,6 +5,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore
 {
     public interface IEventStoreConnectionFactory
     {
-        Lazy<IEventStoreConnection> Create(string connectionString);
+        IEventStoreConnection Create(string connectionString, ILogger logger);
     }
 }

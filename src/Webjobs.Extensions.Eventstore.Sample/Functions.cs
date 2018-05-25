@@ -10,23 +10,29 @@ namespace Webjobs.Extensions.Eventstore.Sample
     public class Functions
     {
         private readonly IEventPublisher<ResolvedEvent> _eventPublisher;
+        private readonly Measurement _measurement;
         private const string WebJobDisabledSetting = "WebJobDisabled";
 
-        public Functions(IEventPublisher<ResolvedEvent> eventPublisher)
+        public Functions(IEventPublisher<ResolvedEvent> eventPublisher, Measurement measurement)
         {
             _eventPublisher = eventPublisher;
+            _measurement = measurement;
+            _measurement.Start();
         }
 
         [Disable(WebJobDisabledSetting)]
-        public void ProcessQueueMessage([EventTrigger(BatchSize = 10, TimeOutInMilliSeconds = 20)] IObservable<ResolvedEvent> events)
+        public void ProcessQueueMessage([EventTrigger(BatchSize = 2000, TimeOutInMilliSeconds = 50)] IEnumerable<ResolvedEvent> events)
         {
-            events.Subscribe(e => _eventPublisher.Publish(e));
+            foreach (var resolvedEvent in events)
+            {
+                _eventPublisher.Publish(resolvedEvent);
+            }
         }
 
         [Disable(WebJobDisabledSetting)]
         public void LiveProcessingStarted([LiveProcessingStarted] LiveProcessingStartedContext context)
         {
-            Console.WriteLine("Live started triggered, event stream is now live");
+            _measurement.Stop();
         }
     }
 }

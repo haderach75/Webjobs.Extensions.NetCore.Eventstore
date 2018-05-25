@@ -14,16 +14,15 @@ namespace Webjobs.Extensions.NetCore.Eventstore
     /// </summary>
     public class EventStoreConfig : IExtensionConfigProvider
     {
-        private IEventStoreSubscription _eventStoreSubscription;
-
         /// <summary>
         /// Factory that creates a connection object to event store.
         /// </summary>
-        public IEventStoreConnectionFactory EventStoreConnectionFactory { get; set; }
+        public IEventStoreConnectionFactory EventStoreConnectionFactory { get; set; } = new EventStoreConnectionFactory();
+        
         /// <summary>
         /// Factory used to create user credentials for event store subscription.
         /// </summary>
-        public IUserCredentialFactory UserCredentialFactory { get; set; }
+        public IUserCredentialFactory UserCredentialFactory { get; set; }  = new UserCredentialFactory();
 
         /// <summary>
         /// The position in the stream for the last event processed.
@@ -31,16 +30,16 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// the beginning.
         /// </summary>
         public Position? LastPosition { get; set; }
-        
+
         /// <summary>
         /// The username used in UserCredentialFactory to gain access to event store.
         /// </summary>
-        public string Username { get; set; }
+        public string Username { get; set; } = "admin";
 
         /// <summary>
         /// The password used in UserCredentialFactory to gain access to event store.
         /// </summary>
-        public string Password { get; set; }
+        public string Password { get; set; } = "changeit";
         
         /// <summary>
         /// The connection string to the event store cluster.
@@ -50,23 +49,14 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// <summary>
         /// Queue size for the event store live stream.
         /// </summary>
-        public int MaxLiveQueueSize { get; set; }
-
-        /// <summary>
-        /// Gets the active event store subscription;
-        /// </summary>
-        public IEventStoreSubscription EventStoreSubscription
-        {
-            get => _eventStoreSubscription;
-            set => _eventStoreSubscription = value;
-        }
-
+        public int MaxLiveQueueSize { get; set; } = 1000;
+        
         /// <summary>
         /// Gets or set the pre event filtering, which filters event from reaching the trigger.
         /// </summary>
         public IEventFilter EventFilter { get; set; }
         
-        public IEventStoreSubscriptionFactory EventStoreSubscriptionFactory { get; set; }
+        public IEventStoreSubscriptionFactory EventStoreSubscriptionFactory { get; set; } = new EventStoreSubscriptionFactory();
        
         /// <summary>
         /// Method called when jobhost starts.
@@ -78,22 +68,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
             {
                 throw new ArgumentNullException(nameof(context));
             }
-
-            if (EventStoreConnectionFactory == null)
-                EventStoreConnectionFactory = new EventStoreConnectionFactory();
-
-            if (UserCredentialFactory == null)
-                UserCredentialFactory = new UserCredentialFactory();
-
-            if (MaxLiveQueueSize == 0)
-                MaxLiveQueueSize = 200;
-                
-            if(EventStoreSubscriptionFactory == null)
-                EventStoreConnectionFactory = new EventStoreConnectionFactory();
             
-            if(EventStoreSubscriptionFactory == null)
-                EventStoreSubscriptionFactory = new EventStoreSubscriptionFactory();
-
             var subject = new Subject<IEnumerable<ResolvedEvent>>();
             var triggerBindingProvider = new EventTriggerAttributeBindingProvider(context.Config.NameResolver, this, subject, context.Config.LoggerFactory);
             
