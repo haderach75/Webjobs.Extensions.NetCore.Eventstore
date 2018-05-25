@@ -5,7 +5,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     public class EventStoreConnectionFactory : IEventStoreConnectionFactory
     {
-        public IEventStoreConnection Create(string connectionString, ILogger logger)
+        public IEventStoreConnection Create(string connectionString, ILogger logger, string connectionName = null)
         {
             var connectionSettings = ConnectionSettings.Create()
                 .FailOnNoServerResponse()
@@ -15,7 +15,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 .KeepRetrying()
                 .SetMaxDiscoverAttempts(int.MaxValue);
             
-            var conn = EventStoreConnection.Create(connectionString, connectionSettings);
+            var conn = EventStoreConnection.Create(connectionString, connectionSettings, connectionName);
             
             conn.Connected += (s, e) => logger.Info("Connected to EventStore");
             conn.Reconnecting += (s, e) => logger.Info("Reconnecting to EventStore...");
