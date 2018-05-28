@@ -43,17 +43,19 @@ The event trigger can subscribe to all stream or an specific stream by name. Whe
 
 ```csharp        
 [Singleton(Mode = SingletonMode.Listener)]
-public void ProcessQueueMessage([EventTrigger(BatchSize = 10, TimeOutInMilliSeconds = 20)] IEnumerable<ResolvedEvent> events)
+public void ProcessQueueMessage([EventTrigger(BatchSize = 1024, TimeOutInMilliSeconds = 20)] IEnumerable<ResolvedEvent> events)
 {
     //Handle the delivered events
 }
 
 [Disable(WebJobDisabledSetting)]
-public void LiveProcessingStarted([LiveProcessingStarted] LiveProcessingStartedContext context)
+public void LiveProcessingStarted([LiveProcessingStarted] SubscriptionContext context)
 {
     //Handle the swap from catchup to live mode
 }
 ```
+
+Check the sample project for more a more advanced scenario.
 
 ## Authors
 
