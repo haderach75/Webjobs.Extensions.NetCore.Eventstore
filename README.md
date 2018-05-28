@@ -39,7 +39,7 @@ public class MyEventFilter : IEventFilter
 }
 ```
 
-The event trigger can subscribe to all stream or an specific stream by name. When the subscription reaches the current position the LiveProcessingStarted trigger is fired. The trigger fires when the batch buffer has filled up or the timeout has elapsed. 
+The event trigger can subscribe to all stream or an specific stream by name. The trigger fires when the batch buffer has filled up or the timeout has elapsed. When the subscription reaches the current position the LiveProcessingStarted trigger is fired. 
 
 ```csharp        
 [Singleton(Mode = SingletonMode.Listener)]
