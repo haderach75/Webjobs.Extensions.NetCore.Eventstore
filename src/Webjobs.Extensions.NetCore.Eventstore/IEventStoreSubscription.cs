@@ -7,6 +7,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
 {
     public interface IEventStoreSubscription : IObservable<ResolvedEvent>
     {
+        EventStoreCatchUpSubscription Subscription { get; }
         Task StartAsync(CancellationToken token, int batchSize = 200);
         void Stop();
     }

@@ -11,7 +11,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     public abstract class SubscriptionObservableBase : IEventStoreSubscription
     {
-        protected EventStoreCatchUpSubscription Subscription;
         protected readonly IEventStoreConnection Connection;
         protected readonly UserCredentials UserCredentials;
         private long? _lastCheckpoint;
@@ -38,7 +37,9 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             _subject = new Subject<ResolvedEvent>();
         }
-        
+
+        public EventStoreCatchUpSubscription Subscription { get; protected set; }
+
         public virtual async Task StartAsync(CancellationToken cancellationToken, int batchSize = 200)
         {
             BatchSize = batchSize;

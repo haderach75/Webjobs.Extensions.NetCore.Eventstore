@@ -77,7 +77,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private void OnCompleted()
         {
             _observable = RestartSubscription();
-            _observer.OnNext(new SubscriptionContext(null, _triggerName));
+            _observer.OnNext(new SubscriptionContext(_eventStoreSubscription.Subscription, _triggerName));
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
