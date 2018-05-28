@@ -13,7 +13,7 @@ config.UseEventStore(new EventStoreConfig
     Username = "admin",
     Password = "changeit",
     LastPosition = new Position(0,0),
-    MaxLiveQueueSize = 500
+    MaxLiveQueueSize = 10000
 });
 ```
 
