@@ -21,5 +21,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// The name of the stream to subscribe to.
         /// </summary>
         public string Stream { get; set; }
+        
+        public string TriggerName { get; set; }
     }
 }

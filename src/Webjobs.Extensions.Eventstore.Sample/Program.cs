@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using SimpleInjector;
 using SimpleInjector.Lifestyles;
 using Webjobs.Extensions.NetCore.Eventstore;
+using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
 namespace Webjobs.Extensions.Eventstore.Sample
 {
@@ -55,7 +56,6 @@ namespace Webjobs.Extensions.Eventstore.Sample
         {
             container.Register<IEventPublisher<ResolvedEvent>, EventPublisher>(Lifestyle.Singleton);
             container.Register(new LoggerFactory().AddConsole, Lifestyle.Singleton);
-            container.RegisterSingleton<CatchupTimer>();
         }
     }
 }

@@ -69,7 +69,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
                 throw new ArgumentNullException(nameof(context));
             }
             
-            var subject = new Subject<IEnumerable<ResolvedEvent>>();
+            var subject = new Subject<SubscriptionContext>();
             var triggerBindingProvider = new EventTriggerAttributeBindingProvider(context.Config.NameResolver, this, subject, context.Config.LoggerFactory);
             
             var liveProcessingStartedBindingProvider = new LiveProcessingStartedAttributeBindingProvider(subject, context.Config.LoggerFactory);

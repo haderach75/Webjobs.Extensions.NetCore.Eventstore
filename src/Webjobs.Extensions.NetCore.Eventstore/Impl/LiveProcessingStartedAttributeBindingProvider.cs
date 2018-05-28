@@ -15,10 +15,10 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     internal class LiveProcessingStartedAttributeBindingProvider : ITriggerBindingProvider
     {
-        private readonly IObservable<IEnumerable<ResolvedEvent>> _observable;
+        private readonly IObservable<SubscriptionContext> _observable;
         private readonly ILoggerFactory _loggerFactory;
         
-        public LiveProcessingStartedAttributeBindingProvider(IObservable<IEnumerable<ResolvedEvent>> observable, 
+        public LiveProcessingStartedAttributeBindingProvider(IObservable<SubscriptionContext> observable, 
                                                              ILoggerFactory loggerFactory)
         {
             _observable = observable;
@@ -39,7 +39,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 return Task.FromResult<ITriggerBinding>(null);
             }
 
-            if (parameter.ParameterType != typeof(LiveProcessingStartedContext))
+            if (parameter.ParameterType != typeof(SubscriptionContext))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind LiveProcessingStartedAttribute to type '{0}'.", parameter.ParameterType));
@@ -50,11 +50,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
         internal class LiveProcessingStartedTriggerBinding : ITriggerBinding
         {
-            private readonly IObservable<IEnumerable<ResolvedEvent>> _observable;
+            private readonly IObservable<SubscriptionContext> _observable;
             private readonly ParameterInfo _parameter;
             private readonly ILoggerFactory _loggerFactory;
 
-            public LiveProcessingStartedTriggerBinding(IObservable<IEnumerable<ResolvedEvent>> observable, 
+            public LiveProcessingStartedTriggerBinding(IObservable<SubscriptionContext> observable, 
                                                        ParameterInfo parameter,
                                                        ILoggerFactory loggerFactory)
             {
@@ -66,7 +66,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             public IReadOnlyDictionary<string, Type> BindingDataContract { get; }
 
-            public Type TriggerValueType => typeof(LiveProcessingStartedTriggerValue);
+            public Type TriggerValueType => typeof(SubscriptionContext);
 
             public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
@@ -75,7 +75,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                     throw new NotSupportedException("LiveProcessingStartedTrigger does not support Dashboard invocation.");
                 }
 
-                var triggerValue = value as LiveProcessingStartedTriggerValue;
+                var triggerValue = value as SubscriptionContext;
                 IValueBinder valueBinder = new LiveProcessingStartedTriggerValueBinder(_parameter, triggerValue);
                 return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, GetBindingData(triggerValue)));
             }
@@ -101,7 +101,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 };
             }
 
-            private IReadOnlyDictionary<string, object> GetBindingData(LiveProcessingStartedTriggerValue value)
+            private IReadOnlyDictionary<string, object> GetBindingData(SubscriptionContext value)
             {
                 Dictionary<string, object> bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                 bindingData.Add("LiveProcessingStartedContext", value);
@@ -127,9 +127,9 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             private class LiveProcessingStartedTriggerValueBinder : ValueBinder
             {
-                private readonly object _value;
+                private readonly SubscriptionContext _value;
 
-                public LiveProcessingStartedTriggerValueBinder(ParameterInfo parameter, LiveProcessingStartedTriggerValue value)
+                public LiveProcessingStartedTriggerValueBinder(ParameterInfo parameter, SubscriptionContext value)
                     : base(parameter.ParameterType)
                 {
                     _value = value;
@@ -137,13 +137,12 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
                 public override Task<object> GetValueAsync()
                 {
-                    if (Type == typeof(LiveProcessingStartedContext))
+                    if (Type == typeof(SubscriptionContext))
                     {
-                        var triggerData = (LiveProcessingStartedTriggerValue)_value;
-                        var data = new LiveProcessingStartedContext(triggerData.Subscription);
+                        var data = new SubscriptionContext(_value.Subscription, _value.EventTriggerName);
                         return Task.FromResult<object>(data);
                     }
-                    return Task.FromResult(_value);
+                    return Task.FromResult<object>(_value);
                 }
 
                 public override string ToInvokeString()
