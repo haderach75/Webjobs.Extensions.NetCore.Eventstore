@@ -14,8 +14,6 @@ namespace Webjobs.Extensions.Eventstore.Sample
             var json = Encoding.UTF8.GetString(item.OriginalEvent.Data);
             JsonConvert.DeserializeObject<Event>(json);
             Console.WriteLine($"Message as JSON: {json}");
-            
-            if (_updateCounter++ % 50000 == 0) Console.WriteLine($"{DateTime.Now:T}: Events processed #{_updateCounter}");
         }
     }
 }
