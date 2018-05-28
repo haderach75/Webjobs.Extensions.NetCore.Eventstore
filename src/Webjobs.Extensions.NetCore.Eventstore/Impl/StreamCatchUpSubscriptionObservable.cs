@@ -6,25 +6,26 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
-    public class EventStoreCatchUpSubscriptionObservable : EventStoreStreamSubscriptionObservableBase
+    public class StreamCatchUpSubscriptionObservable : SubscriptionObservableBase
     {
-        public EventStoreCatchUpSubscriptionObservable(Lazy<IEventStoreConnection> connection,
+        private readonly string _streamName;
+        public StreamCatchUpSubscriptionObservable(IEventStoreConnection connection, 
+            string streamName,
             long? lastCheckpoint,
             int maxLiveQueueMessage,
             UserCredentials userCredentials,
             ILogger logger) : base(connection, lastCheckpoint, maxLiveQueueMessage, userCredentials, logger)
         {
+            _streamName = streamName;
         }
         
         protected override void StartCatchUpSubscription(long? startPosition)
         {
             OnCompletedFired = false;
             IsStarted = true;
-            var lastPosition = startPosition.HasValue ? new Position(startPosition.Value, startPosition.Value) : AllCheckpoint.AllStart;
-            
             var settings = new CatchUpSubscriptionSettings(MaxLiveQueueMessage, BatchSize, true, false);
-            Subscription = Connection.Value.SubscribeToAllFrom(
-                lastPosition,
+            Subscription = Connection.SubscribeToStreamFrom(_streamName,
+                startPosition,
                 settings,
                 EventAppeared,
                 LiveProcessingStarted,

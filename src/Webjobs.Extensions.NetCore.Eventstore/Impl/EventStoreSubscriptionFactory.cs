@@ -1,31 +1,39 @@
-﻿using EventStore.ClientAPI.SystemData;
+﻿using System;
+using System.Reflection;
+using EventStore.ClientAPI.SystemData;
 using Microsoft.Extensions.Logging;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     public class EventStoreSubscriptionFactory : IEventStoreSubscriptionFactory
     {
-        private IEventStoreSubscription _eventStoreSubscription;
-        
         public IEventStoreSubscription Create(EventStoreConfig eventStoreConfig, ILoggerFactory loggerFactory, string stream = null)
         {
-            if (_eventStoreSubscription == null)
+            var commitedPosition = eventStoreConfig.LastPosition?.CommitPosition;
+            var userCredentials = new UserCredentials(eventStoreConfig.Username, eventStoreConfig.Password);
+            var eventStoreConnection = eventStoreConfig.EventStoreConnectionFactory.Create(eventStoreConfig.ConnectionString, 
+                new EventStoreLogger(loggerFactory), ConnectionName());
+            
+            return string.IsNullOrWhiteSpace(stream)
+                ? (IEventStoreSubscription) new CatchUpSubscriptionObservable(eventStoreConnection,
+                    commitedPosition,
+                    eventStoreConfig.MaxLiveQueueSize,
+                    userCredentials, loggerFactory.CreateLogger<CatchUpSubscriptionObservable>())
+                : new StreamCatchUpSubscriptionObservable(eventStoreConnection,
+                    stream,
+                    commitedPosition,
+                    eventStoreConfig.MaxLiveQueueSize,
+                    userCredentials, loggerFactory.CreateLogger<StreamCatchUpSubscriptionObservable>());
+        }
+
+        private static string ConnectionName()
+        {
+            var assemblyName = Assembly.GetEntryAssembly().GetName().Name;
+            if (assemblyName.Contains("."))
             {
-                var commitedPosition = eventStoreConfig.LastPosition.HasValue ? eventStoreConfig.LastPosition.Value.CommitPosition : (long?) null;
-                var userCredentials = new UserCredentials(eventStoreConfig.Username, eventStoreConfig.Password);
-                var eventStoreConnection = eventStoreConfig.EventStoreConnectionFactory.Create(eventStoreConfig.ConnectionString);
-                _eventStoreSubscription =  string.IsNullOrWhiteSpace(stream)
-                    ? (IEventStoreSubscription) new EventStoreCatchUpSubscriptionObservable(eventStoreConnection,
-                        commitedPosition,
-                        eventStoreConfig.MaxLiveQueueSize,
-                        userCredentials, loggerFactory.CreateLogger<EventStoreCatchUpSubscriptionObservable>())
-                    : new EventStoreStreamCatchUpSubscriptionObservable(eventStoreConnection,
-                        stream,
-                        commitedPosition,
-                        eventStoreConfig.MaxLiveQueueSize,
-                        userCredentials, loggerFactory.CreateLogger<EventStoreStreamCatchUpSubscriptionObservable>());
+                return $"{assemblyName.Substring(assemblyName.LastIndexOf('.') + 1)}-{Guid.NewGuid()}";
             }
-            return _eventStoreSubscription;
+            return $"{assemblyName}-{Guid.NewGuid()}";;
         }
     }
 }

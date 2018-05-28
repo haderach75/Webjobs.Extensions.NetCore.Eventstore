@@ -17,24 +17,27 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private readonly ITriggeredFunctionExecutor _executor;
         private IEventStoreSubscription _eventStoreSubscription;
         private readonly IEventFilter _eventFilter;
-        private readonly IObserver<IEnumerable<ResolvedEvent>> _observer;
+        private readonly IObserver<SubscriptionContext> _observer;
         private CancellationToken _cancellationToken = CancellationToken.None;
         private IDisposable _observable;
         private readonly ILogger _logger;
 
         private readonly int _timeOutInMilliSeconds;
+        private readonly string _triggerName;
         private readonly int _batchSize;
         
         public EventStoreListener(ITriggeredFunctionExecutor executor, 
                                   IEventStoreSubscription eventStoreSubscription,
                                   IEventFilter eventFilter,
-                                  IObserver<IEnumerable<ResolvedEvent>> observer,
+                                  IObserver<SubscriptionContext> observer,
                                   int batchSize,
-                                  int timeOutInMilliSeconds, 
+                                  int timeOutInMilliSeconds,
+                                  string triggerName,
                                   ILogger logger)
         {
             _batchSize = batchSize;
             _timeOutInMilliSeconds = timeOutInMilliSeconds;
+            _triggerName = triggerName;
             _logger = logger;
             _executor = executor;
             _eventStoreSubscription = eventStoreSubscription;
@@ -50,8 +53,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             
             _logger.LogInformation("Observable subscription started.");
 
-            _eventStoreSubscription.Start(cancellationToken, _batchSize);
-            return Task.FromResult(true);
+            return _eventStoreSubscription.StartAsync(cancellationToken, _batchSize);
         }
 
         private IDisposable RestartSubscription()
@@ -75,7 +77,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private void OnCompleted()
         {
             _observable = RestartSubscription();
-            _observer.OnCompleted();
+            _observer.OnNext(new SubscriptionContext(_eventStoreSubscription.Subscription, _triggerName));
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

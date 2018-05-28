@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reactive.Linq;
 using EventStore.ClientAPI;
 
@@ -9,10 +8,15 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     public class DefaultEventFilter : IEventFilter
     {
         private readonly EventBuffer _eventBuffer;
+        
+        public DefaultEventFilter()
+        {
+            _eventBuffer = new EventBuffer(2000);
+        }
 
         public DefaultEventFilter(int batchSize)
         {
-            _eventBuffer = new EventBuffer(batchSize + 28);
+            _eventBuffer = new EventBuffer(batchSize);
         }
         
         public IObservable<ResolvedEvent> Filter(IObservable<ResolvedEvent> eventStreamObservable)
@@ -28,11 +32,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             if (evt.EventType == "$streamDeleted") return false;
             lock (LockObj)
             {
-                if (_eventBuffer != null && _eventBuffer.Contains(evt.EventId))
-                {
-                    Trace.TraceWarning($"Duplicate event {evt.EventType} {evt.EventId} in stream {evt.EventNumber}@{evt.EventStreamId}. Skipping processing.");
-                    return false;
-                }
+                if (_eventBuffer != null && _eventBuffer.Contains(evt.EventId)) return false;
+                
                 _eventBuffer?.Add(evt.EventId);
             }
             return true;

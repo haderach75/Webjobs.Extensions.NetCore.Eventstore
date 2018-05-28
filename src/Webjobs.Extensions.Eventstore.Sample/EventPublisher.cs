@@ -8,6 +8,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
 {
     public class EventPublisher : IEventPublisher<ResolvedEvent>
     {
+        private int _updateCounter = 0;
         public void Publish(ResolvedEvent item)
         {
             var json = Encoding.UTF8.GetString(item.OriginalEvent.Data);

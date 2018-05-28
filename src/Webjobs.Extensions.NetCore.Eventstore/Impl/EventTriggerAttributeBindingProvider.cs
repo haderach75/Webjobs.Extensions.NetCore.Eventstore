@@ -20,14 +20,14 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     {
         private readonly INameResolver _nameResolver;
         private readonly EventStoreConfig _eventStoreConfig;
-        private readonly IObserver<IEnumerable<ResolvedEvent>> _observer;
+        private readonly IObserver<SubscriptionContext> _observer;
         private readonly ILoggerFactory _loggerFactory;
         private EventTriggerAttribute _attribute;
         
         public EventTriggerAttributeBindingProvider(
             INameResolver nameResolver,
             EventStoreConfig eventStoreConfig,
-            IObserver<IEnumerable<ResolvedEvent>> observer,
+            IObserver<SubscriptionContext> observer,
             ILoggerFactory loggerFactory)
         {
             _nameResolver = nameResolver ?? throw new ArgumentNullException(nameof(nameResolver));
@@ -50,7 +50,13 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 return Task.FromResult<ITriggerBinding>(null);
             }
             
+            if(_attribute.BatchSize > 2048)
+                throw new ArgumentException("Batch size is too big, max size 2048");
+            
             _attribute.Stream = Resolve(_attribute.Stream);
+
+            if (string.IsNullOrEmpty(_attribute.TriggerName))
+                _attribute.TriggerName = parameter.Member.Name;
             
             if (parameter.ParameterType != typeof(EventTriggerData) &&
                 parameter.ParameterType != typeof(IEnumerable<ResolvedEvent>) &&
@@ -77,13 +83,13 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             private readonly EventStoreConfig _eventStoreConfig;
             private readonly ParameterInfo _parameter;
             private readonly EventTriggerAttribute _attribute;
-            private readonly IObserver<IEnumerable<ResolvedEvent>> _observer;
+            private readonly IObserver<SubscriptionContext> _observer;
             private readonly ILoggerFactory _loggerFactory;
 
             public EventTriggerBinding(EventStoreConfig eventStoreConfig,
                                        ParameterInfo parameter,
                                        EventTriggerAttribute attribute,
-                                       IObserver<IEnumerable<ResolvedEvent>> observer,
+                                       IObserver<SubscriptionContext> observer,
                                        ILoggerFactory loggerFactory)
             {
                 _eventStoreConfig = eventStoreConfig;
@@ -118,8 +124,9 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                                                      eventStoreSubscription,
                                                     _eventStoreConfig.EventFilter,
                                                     _observer,
-                                                    _attribute.BatchSize,
+                                                    _attribute.BatchSize * 2,
                                                     _attribute.TimeOutInMilliSeconds,
+                                                    _attribute.TriggerName,
                                                     _loggerFactory.CreateLogger<EventStoreListener>());
                 return Task.FromResult(listener);
             }

@@ -13,13 +13,13 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     public class LiveProcessingStartedListener : IListener
     {
         private readonly ITriggeredFunctionExecutor _executor;
-        private readonly IObservable<IEnumerable<ResolvedEvent>> _observable;
+        private readonly IObservable<SubscriptionContext> _observable;
         private readonly ILogger _logger;
         private CancellationToken _cancellationToken = CancellationToken.None;
         private IDisposable _observer;
         
         public LiveProcessingStartedListener(ITriggeredFunctionExecutor executor,
-                                             IObservable<IEnumerable<ResolvedEvent>> observable,
+                                             IObservable<SubscriptionContext> observable,
                                              ILogger logger)
         {
             _executor = executor;
@@ -30,16 +30,16 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            _observer = _observable.Subscribe(events => { }, OnCompleted);
+            _observer = _observable.Subscribe(OnNext);
             
             return Task.FromResult(true);
         }
 
-        private void OnCompleted()
+        private void OnNext(SubscriptionContext context)
         {
             var input = new TriggeredFunctionData
             {
-                TriggerValue = new LiveProcessingStartedTriggerValue(null)
+                TriggerValue = context
             };
             _executor.TryExecuteAsync(input, _cancellationToken).Wait();
         }
