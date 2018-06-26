@@ -59,8 +59,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 _attribute.TriggerName = parameter.Member.Name;
             
             if (parameter.ParameterType != typeof(EventTriggerData) &&
-                parameter.ParameterType != typeof(IEnumerable<ResolvedEvent>) &&
-                parameter.ParameterType != typeof(IObservable<ResolvedEvent>))
+                parameter.ParameterType != typeof(IEnumerable<StreamEvent>) &&
+                parameter.ParameterType != typeof(IObservable<StreamEvent>))
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture,
                     "Can't bind EventTriggerAttribute to type '{0}'.", parameter.ParameterType));
@@ -102,7 +102,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             public IReadOnlyDictionary<string, Type> BindingDataContract { get; }
 
-            public Type TriggerValueType => typeof(EventStoreTriggerValue);
+            public Type TriggerValueType => typeof(EventTriggerData);
 
             public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
             {
@@ -111,7 +111,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                     throw new NotSupportedException("EventTrigger does not support Dashboard invocation.");
                 }
 
-                var triggerValue = value as EventStoreTriggerValue;
+                var triggerValue = value as EventTriggerData;
                 IValueBinder valueBinder = new EventStoreTriggerValueBinder(_parameter, triggerValue);
                 return Task.FromResult<ITriggerData>(new TriggerData(valueBinder, GetBindingData(triggerValue)));
             }
@@ -145,21 +145,18 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 };
             }
 
-            private IReadOnlyDictionary<string, object> GetBindingData(EventStoreTriggerValue value)
+            private IReadOnlyDictionary<string, object> GetBindingData(EventTriggerData value)
             {
                 Dictionary<string, object> bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                 bindingData.Add("EventTrigger", value);
-                bindingData.Add("EventTriggerData", value);
-                bindingData.Add("IEnumerable<ResolvedEvent>", value.Events);
-                bindingData.Add("IObservable<ResolvedEvent>", value.Events.ToObservable());
-
+                
                 return bindingData;
             }
 
             private IReadOnlyDictionary<string, Type> CreateBindingDataContract()
             {
                 Dictionary<string, Type> contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-                contract.Add("EventTrigger", typeof(EventStoreTriggerValueBinder));
+                contract.Add("EventTrigger", typeof(EventTriggerData));
                 
                 return contract;
             }
@@ -174,9 +171,9 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             private class EventStoreTriggerValueBinder : ValueBinder
             {
-                private readonly EventStoreTriggerValue _value;
+                private readonly EventTriggerData _value;
 
-                public EventStoreTriggerValueBinder(ParameterInfo parameter, EventStoreTriggerValue value)
+                public EventStoreTriggerValueBinder(ParameterInfo parameter, EventTriggerData value)
                     : base(parameter.ParameterType)
                 {
                     _value = value;
@@ -186,17 +183,17 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 {
                     if (Type == typeof(EventTriggerData))
                     {
-                        var data = new EventTriggerData(_value.Events);
-                        return Task.FromResult<object>(data);
+                        return Task.FromResult<object>(_value);
                     }
-                    if (Type == typeof(IEnumerable<ResolvedEvent>))
-                    {
-                        return Task.FromResult<object>(_value.Events);
-                    }
-                    if (Type == typeof(IObservable<ResolvedEvent>))
+                    if (Type == typeof(IObservable<StreamEvent>))
                     {
                         return Task.FromResult<object>(_value.Events.ToObservable());
                     }
+                    if (Type == typeof(IEnumerable<StreamEvent>))
+                    {
+                        return Task.FromResult<object>(_value.Events);
+                    }
+                    
                     return Task.FromResult<object>(_value);
                 }
 

@@ -11,10 +11,10 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 .FailOnNoServerResponse()
                 .SetGossipTimeout(TimeSpan.FromMilliseconds(1000))
                 .UseCustomLogger(logger)
+                //.PreferRandomNode()
                 .KeepReconnecting()
                 .KeepRetrying()
-                .SetMaxDiscoverAttempts(int.MaxValue);
-            
+                .SetMaxDiscoverAttempts(int.MaxValue);            
             var conn = EventStoreConnection.Create(connectionString, connectionSettings, connectionName);
             
             conn.Connected += (s, e) => logger.Info("Connected to EventStore");

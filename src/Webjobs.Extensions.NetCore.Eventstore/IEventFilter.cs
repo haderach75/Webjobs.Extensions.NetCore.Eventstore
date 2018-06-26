@@ -1,10 +1,11 @@
 using System;
 using EventStore.ClientAPI;
+using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
 namespace Webjobs.Extensions.NetCore.Eventstore
 {
     public interface IEventFilter
     {
-        IObservable<ResolvedEvent> Filter(IObservable<ResolvedEvent> eventStreamObservable);
+        IObservable<StreamEvent> Filter(IObservable<StreamEvent> eventStreamObservable);
     }
 }

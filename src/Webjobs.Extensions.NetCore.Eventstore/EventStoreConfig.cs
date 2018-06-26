@@ -20,11 +20,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         public IEventStoreConnectionFactory EventStoreConnectionFactory { get; set; } = new EventStoreConnectionFactory();
         
         /// <summary>
-        /// Factory used to create user credentials for event store subscription.
-        /// </summary>
-        public IUserCredentialFactory UserCredentialFactory { get; set; }  = new UserCredentialFactory();
-
-        /// <summary>
         /// The position in the stream for the last event processed.
         /// If not position is supplied, the subscription will start from 
         /// the beginning.
@@ -49,7 +44,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// <summary>
         /// Queue size for the event store live stream.
         /// </summary>
-        public int MaxLiveQueueSize { get; set; } = 1000;
+        public int MaxLiveQueueSize { get; set; } = 10000;
         
         /// <summary>
         /// Gets or set the pre event filtering, which filters event from reaching the trigger.

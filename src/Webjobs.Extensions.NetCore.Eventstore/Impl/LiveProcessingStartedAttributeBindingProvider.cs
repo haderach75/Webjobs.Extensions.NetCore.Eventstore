@@ -139,10 +139,9 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 {
                     if (Type == typeof(SubscriptionContext))
                     {
-                        var data = new SubscriptionContext(_value.Subscription, _value.EventTriggerName);
-                        return Task.FromResult<object>(data);
+                        return Task.FromResult<object>(_value);
                     }
-                    return Task.FromResult<object>(_value);
+                    return Task.FromResult<object>(null);
                 }
 
                 public override string ToInvokeString()

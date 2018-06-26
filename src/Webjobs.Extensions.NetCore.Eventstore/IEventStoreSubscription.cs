@@ -1,13 +1,12 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
+using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
 namespace Webjobs.Extensions.NetCore.Eventstore
 {
-    public interface IEventStoreSubscription : IObservable<ResolvedEvent>
+    public interface IEventStoreSubscription : IObservable<StreamEvent>
     {
-        EventStoreCatchUpSubscription Subscription { get; }
         Task StartAsync(CancellationToken token, int batchSize = 200);
         void Stop();
     }

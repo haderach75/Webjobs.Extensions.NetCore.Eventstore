@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +20,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         protected readonly int MaxLiveQueueMessage;
         private CancellationToken _cancellationToken;
         
-        private Subject<ResolvedEvent> _subject;
+        private Subject<StreamEvent> _subject;
         protected bool OnCompletedFired;
         protected bool IsStarted;
         protected readonly ILogger Logger;
@@ -35,7 +37,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             Connection = connection;
             MaxLiveQueueMessage = maxLiveQueueMessage;
 
-            _subject = new Subject<ResolvedEvent>();
+            _subject = new Subject<StreamEvent>();
         }
 
         public EventStoreCatchUpSubscription Subscription { get; protected set; }
@@ -70,11 +72,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             IsStarted = false;
         }
 
-        public virtual IDisposable Subscribe(IObserver<ResolvedEvent> observer)
+        public virtual IDisposable Subscribe(IObserver<StreamEvent> observer)
         {
             if (OnCompletedFired)
             {
-                _subject = new Subject<ResolvedEvent>();
+                _subject = new Subject<StreamEvent>();
             }
             return _subject.Subscribe(observer);
         }        
@@ -87,6 +89,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             StartCatchUpSubscription(position);
         }
 
+        private Stopwatch sw = new Stopwatch();
+        private int _updateCounter = 0;
         protected virtual Task EventAppeared(EventStoreCatchUpSubscription sub, ResolvedEvent resolvedEvent)
         {
             if (_cancellationToken != CancellationToken.None && _cancellationToken.IsCancellationRequested)
@@ -98,7 +102,10 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             try
             {
-                _subject.OnNext(resolvedEvent);
+                if(!sw.IsRunning)
+                    sw.Start();
+                _subject.OnNext(new StreamEvent<ResolvedEvent>(resolvedEvent));
+                if (_updateCounter++ % 10000 == 0) Console.WriteLine($"{DateTime.Now:T}: Event recieved #{_updateCounter} elasped:{sw.ElapsedMilliseconds}, avarage per 10000: {sw.ElapsedMilliseconds/ ((_updateCounter / 10000) == 0 ? 1 : (_updateCounter / 10000))}ms");
                 var pos = GetLong(resolvedEvent.OriginalPosition);
                 if (pos != null)
                 {
@@ -120,6 +127,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
         protected virtual void LiveProcessingStarted(EventStoreCatchUpSubscription sub)
         {
+            sw.Stop();
+            Console.WriteLine($"Catchup completed in {sw.ElapsedMilliseconds}ms");
             if (!OnCompletedFired)
             {
                 OnCompletedFired = true;
