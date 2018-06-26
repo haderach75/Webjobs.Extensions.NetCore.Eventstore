@@ -1,18 +1,19 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Text;
 using EventStore.ClientAPI;
 using Newtonsoft.Json;
+using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
 namespace Webjobs.Extensions.Eventstore.Sample
 {
-    public class EventPublisher : IEventPublisher<ResolvedEvent>
+    public class EventPublisher : IEventPublisher<StreamEvent>
     {
-        private int _updateCounter = 0;
-        public void Publish(ResolvedEvent item)
+        public void Publish(StreamEvent item)
         {
-            var json = Encoding.UTF8.GetString(item.OriginalEvent.Data);
-            JsonConvert.DeserializeObject<Event>(json);
+            var e = (StreamEvent<ResolvedEvent>)item;
+            var evt = e.Payload;
+            var json = Encoding.UTF8.GetString(evt.OriginalEvent.Data);
+            
             Console.WriteLine($"Message as JSON: {json}");
         }
     }

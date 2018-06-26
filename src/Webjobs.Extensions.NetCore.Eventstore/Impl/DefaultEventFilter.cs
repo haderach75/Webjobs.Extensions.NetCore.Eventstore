@@ -19,14 +19,15 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             _eventBuffer = new EventBuffer(batchSize);
         }
         
-        public IObservable<ResolvedEvent> Filter(IObservable<ResolvedEvent> eventStreamObservable)
+        public IObservable<StreamEvent> Filter(IObservable<StreamEvent> eventStreamObservable)
         {
             return eventStreamObservable.Where(IsProcessable);
         }
 
         private static readonly object LockObj = new object();
-        private bool IsProcessable(ResolvedEvent e)
+        private bool IsProcessable(StreamEvent streamEvent)
         {
+            var e = (ResolvedEvent) streamEvent.Payload;
             var evt = e.Event;
             if (e.OriginalStreamId.StartsWith("$")) return false;
             if (evt.EventType == "$streamDeleted") return false;

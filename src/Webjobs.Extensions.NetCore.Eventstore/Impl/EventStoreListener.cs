@@ -63,9 +63,9 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             return _observable;
         }
 
-        private IObservable<IEnumerable<ResolvedEvent>> GetObservable()
+        private IObservable<IEnumerable<StreamEvent>> GetObservable()
         {
-            var observable = (IObservable<ResolvedEvent>) _eventStoreSubscription;
+            var observable = (IObservable<StreamEvent>) _eventStoreSubscription;
             if (_eventFilter != null)
                 observable = _eventFilter.Filter(observable);
             
@@ -77,7 +77,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private void OnCompleted()
         {
             _observable = RestartSubscription();
-            _observer.OnNext(new SubscriptionContext(_eventStoreSubscription.Subscription, _triggerName));
+            _observer.OnNext(new SubscriptionContext(_triggerName));
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
@@ -90,11 +90,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             return Task.FromResult(true);
         }
 
-        private void ProcessEvent(IEnumerable<ResolvedEvent> events)
+        private void ProcessEvent(IEnumerable<StreamEvent> events)
         {
             TriggeredFunctionData input = new TriggeredFunctionData
             {
-                TriggerValue = new EventStoreTriggerValue(events)
+                TriggerValue = new EventTriggerData(events)
             };
             _executor.TryExecuteAsync(input, _cancellationToken).Wait();
         }

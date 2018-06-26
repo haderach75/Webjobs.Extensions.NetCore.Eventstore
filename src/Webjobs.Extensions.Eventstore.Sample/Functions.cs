@@ -11,26 +11,16 @@ namespace Webjobs.Extensions.Eventstore.Sample
 {
     public class Functions
     {
-        private readonly IEventPublisher<ResolvedEvent> _eventPublisher;
+        private readonly IEventPublisher<StreamEvent> _eventPublisher;
         private const string WebJobDisabledSetting = "WebJobDisabled";
 
-        public Functions(IEventPublisher<ResolvedEvent> eventPublisher)
+        public Functions(IEventPublisher<StreamEvent> eventPublisher)
         {
             _eventPublisher = eventPublisher;
         }
 
         [Disable(WebJobDisabledSetting)]
-        public Task ProcessEvents([EventTrigger(BatchSize = 2048, TimeOutInMilliSeconds = 50, TriggerName = "Custom trigger name")] IEnumerable<ResolvedEvent> events)
-        {
-            foreach (var resolvedEvent in events)
-            {
-                _eventPublisher.Publish(resolvedEvent);
-            }
-            return Task.CompletedTask;
-        }
-        
-        [Disable(WebJobDisabledSetting)]
-        public Task ProcessEvents2([EventTrigger(BatchSize = 1024, TimeOutInMilliSeconds = 50)] IEnumerable<ResolvedEvent> events)
+        public Task ProcessEvents([EventTrigger(BatchSize = 1024, TimeOutInMilliSeconds = 100, TriggerName = "Custom trigger name")] IEnumerable<StreamEvent> events)
         {
             foreach (var resolvedEvent in events)
             {
@@ -39,7 +29,6 @@ namespace Webjobs.Extensions.Eventstore.Sample
             return Task.CompletedTask;
         }
 
-        [Disable(WebJobDisabledSetting)]
         public void LiveProcessingStarted([LiveProcessingStarted] SubscriptionContext context)
         {
             Console.WriteLine($"Live processing reached for trigger: {context.EventTriggerName}");

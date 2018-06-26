@@ -13,13 +13,12 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 .UseCustomLogger(logger)
                 .KeepReconnecting()
                 .KeepRetrying()
-                .SetMaxDiscoverAttempts(int.MaxValue);
-            
+                .SetMaxDiscoverAttempts(int.MaxValue);            
             var conn = EventStoreConnection.Create(connectionString, connectionSettings, connectionName);
             
             conn.Connected += (s, e) => logger.Info("Connected to EventStore");
-            conn.Reconnecting += (s, e) => logger.Info("Reconnecting to EventStore...");
             conn.Disconnected += (s, e) => logger.Info("Disconnected to EventStore");
+            conn.Reconnecting += (s, e) => logger.Info("Reconnecting to EventStore...");
             conn.ErrorOccurred += (sender, args) => logger.Error($"Exception ({args.Exception.GetType().Name}): {args.Exception}");
             conn.AuthenticationFailed += (sender, args) => logger.Error($"EventStore authentication failed: {args.Reason}");
             return conn;
