@@ -14,7 +14,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
             var evt = e.Payload;
             var json = Encoding.UTF8.GetString(evt.OriginalEvent.Data);
             
-            Console.WriteLine(json);
+            Console.WriteLine($"Message as JSON: {json}");
         }
     }
 }

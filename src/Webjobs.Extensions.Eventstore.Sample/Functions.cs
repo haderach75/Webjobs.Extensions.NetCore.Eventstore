@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Host.Triggers;
 using Webjobs.Extensions.NetCore.Eventstore;
 using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
@@ -23,7 +24,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
         {
             foreach (var resolvedEvent in events)
             {
-                _eventPublisher.Publish((StreamEvent<ResolvedEvent>)resolvedEvent);
+                _eventPublisher.Publish(resolvedEvent);
             }
             return Task.CompletedTask;
         }

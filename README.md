@@ -13,7 +13,7 @@ config.UseEventStore(new EventStoreConfig
     Username = "admin",
     Password = "changeit",
     LastPosition = new Position(0,0),
-    MaxLiveQueueSize = 500
+    MaxLiveQueueSize = 10000
 });
 ```
 
@@ -39,21 +39,23 @@ public class MyEventFilter : IEventFilter
 }
 ```
 
-The event trigger can subscribe to all stream or an specific stream by name. When the subscription reaches the current position the LiveProcessingStarted trigger is fired. The trigger fires when the batch buffer has filled up or the timeout has elapsed. 
+The event trigger can subscribe to all stream or an specific stream by name. The trigger fires when the batch buffer has filled up or the timeout has elapsed. When the subscription reaches the current position the LiveProcessingStarted trigger is fired. 
 
 ```csharp        
 [Singleton(Mode = SingletonMode.Listener)]
-public void ProcessQueueMessage([EventTrigger(BatchSize = 10, TimeOutInMilliSeconds = 20)] IEnumerable<ResolvedEvent> events)
+public void ProcessQueueMessage([EventTrigger(BatchSize = 1024, TimeOutInMilliSeconds = 20)] IEnumerable<ResolvedEvent> events)
 {
     //Handle the delivered events
 }
 
 [Disable(WebJobDisabledSetting)]
-public void LiveProcessingStarted([LiveProcessingStarted] LiveProcessingStartedContext context)
+public void LiveProcessingStarted([LiveProcessingStarted] SubscriptionContext context)
 {
     //Handle the swap from catchup to live mode
 }
 ```
+
+Check the sample project for more a more advanced scenario.
 
 ## Authors
 
