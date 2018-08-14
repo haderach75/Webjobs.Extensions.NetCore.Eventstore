@@ -7,23 +7,23 @@ This repo contains .NetCore binding extension for the Eventstore (https://github
 When creating the Jobhost use the following extension method to bind the triggers.
 
 ```csharp
-config.UseEventStore(new EventStoreConfig
+config.UseEventStore(options =>
 {
-    ConnectionString = "ConnectTo=tcp://localhost:1113;HeartbeatTimeout=20000",
-    Username = "admin",
-    Password = "changeit",
-    LastPosition = new Position(0,0),
-    MaxLiveQueueSize = 10000
+    options.ConnectionString = "ConnectTo=tcp://localhost:1113;HeartbeatTimeout=20000",
+    options.Username = "admin",
+    options.Password = "changeit",
+    options.LastPosition = 0,
+    options.MaxLiveQueueSize = 10000
 });
 ```
 
 In the eventstore configuration has options to override most factories used during the startup of the jobhost. The event store subscription is an observable stream which can be prefiltered with reactive extensions.
 
 ```csharp
-config.UseEventStore(new EventStoreConfig
+config.UseEventStore(options =>
 {
     ...
-    EventFilter = new MyEventFilter()
+    options.EventFilter = new MyEventFilter()
     ...
 });
 
