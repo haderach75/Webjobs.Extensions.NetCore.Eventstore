@@ -32,9 +32,10 @@ public class MyEventFilter : IEventFilter
     /// <summary>
     /// Filter $stat stream and deleted events.
     /// </summary>                
-    public IObservable<ResolvedEvent> Filter(IObservable<ResolvedEvent> eventStreamObservable)
+    public IObservable<ResolvedEvent> Filter(IObservable<StreamEvent> eventStreamObservable)
     {
-        return eventStreamObservable.Where(e => !e.OriginalStreamId.StartsWith("$") && e.Event.EventType != "$streamDeleted");
+        return eventStreamObservable.Cast<StreamEvent<ResolvedEvent>>()
+               .Where(e => !e.OriginalStreamId.StartsWith("$") && e.Event.EventType != "$streamDeleted" );
     }
 }
 ```
@@ -43,7 +44,7 @@ The event trigger can subscribe to all stream or an specific stream by name. The
 
 ```csharp        
 [Singleton(Mode = SingletonMode.Listener)]
-public void ProcessQueueMessage([EventTrigger(BatchSize = 1024, TimeOutInMilliSeconds = 20)] IEnumerable<ResolvedEvent> events)
+public void ProcessQueueMessage([EventTrigger(BatchSize = 1024, TimeOutInMilliSeconds = 20)] IEnumerable<StreamEvent> events)
 {
     //Handle the delivered events
 }
