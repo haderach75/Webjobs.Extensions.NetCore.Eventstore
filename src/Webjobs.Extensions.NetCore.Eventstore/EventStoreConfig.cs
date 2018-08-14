@@ -33,11 +33,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// The password used in UserCredentialFactory to gain access to event store.
         /// </summary>
         public string Password { get; set; } = "changeit";
-        
+
         /// <summary>
         /// The connection string to the event store cluster.
         /// </summary>
-        public string ConnectionString { get; set; }
+        public string ConnectionString { get; set; } = "ConnectTo=tcp://localhost:1113";
 
         /// <summary>
         /// Queue size for the event store live stream.
