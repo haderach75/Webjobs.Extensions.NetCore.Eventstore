@@ -1,8 +1,4 @@
-﻿using System;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.SystemData;
-using Microsoft.Azure.WebJobs.Host;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 namespace Webjobs.Extensions.NetCore.Eventstore
 {

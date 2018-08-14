@@ -1,13 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RuntimeFrameworkVersion>2.1.2</RuntimeFrameworkVersion>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EventStore.ClientAPI.NetCore" Version="4.1.0.23" />
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="System.Reactive" Version="3.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="System.Reactive" Version="4.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Webjobs.Extensions.Eventstore.Sample\Webjobs.Extensions.Eventstore.Sample.csproj" />

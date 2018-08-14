@@ -9,7 +9,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     {
         public IEventStoreSubscription Create(EventStoreConfig eventStoreConfig, ILoggerFactory loggerFactory, string stream = null)
         {
-            var commitedPosition = eventStoreConfig.LastPosition?.CommitPosition;
+            var commitedPosition = eventStoreConfig.LastPosition;
             var userCredentials = new UserCredentials(eventStoreConfig.Username, eventStoreConfig.Password);
             var eventStoreConnection = eventStoreConfig.EventStoreConnectionFactory.Create(eventStoreConfig.ConnectionString, 
                 new EventStoreLogger(loggerFactory), ConnectionName());

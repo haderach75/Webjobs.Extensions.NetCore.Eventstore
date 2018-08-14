@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Text;
 using EventStore.ClientAPI;
-using Newtonsoft.Json;
 using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
 namespace Webjobs.Extensions.Eventstore.Sample

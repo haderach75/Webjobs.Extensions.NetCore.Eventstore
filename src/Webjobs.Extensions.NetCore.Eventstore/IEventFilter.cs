@@ -1,5 +1,4 @@
 using System;
-using EventStore.ClientAPI;
 using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
 namespace Webjobs.Extensions.NetCore.Eventstore

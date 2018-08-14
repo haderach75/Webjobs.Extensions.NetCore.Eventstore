@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reactive.Linq;
-using EventStore.ClientAPI;
+﻿using System.IO;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Logging;
 using Microsoft.Extensions.Configuration;
@@ -38,13 +34,13 @@ namespace Webjobs.Extensions.Eventstore.Sample
             using (ThreadScopedLifestyle.BeginScope(container))
             {
                 InitializeContainer(container);
-                config.UseEventStore(new EventStoreConfig
+                config.UseEventStore(options =>
                 {
-                    ConnectionString = $"{configuration["appSettings:EventStoreConnectionString"]}",
-                    Username = $"{configuration["appSettings:EventStoreAdminUser"]}",
-                    Password = $"{configuration["appSettings:EventStoreAdminPassword"]}",
-                    LastPosition = new Position(0,0),
-                    MaxLiveQueueSize = 10000
+                    options.ConnectionString = $"{configuration["appSettings:EventStoreConnectionString"]}";
+                    options.Username = $"{configuration["appSettings:EventStoreAdminUser"]}";
+                    options.Password = $"{configuration["appSettings:EventStoreAdminPassword"]}";
+                    options.LastPosition = 0;
+                    options.MaxLiveQueueSize = 10000;
                 });
                 
                 var jobActivator = new SimpleInjectorJobActivator(container);

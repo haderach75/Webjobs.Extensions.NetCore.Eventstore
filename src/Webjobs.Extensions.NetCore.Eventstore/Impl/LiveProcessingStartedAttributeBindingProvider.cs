@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs.Extensions.Bindings;
 using Microsoft.Azure.WebJobs.Host.Bindings;
 using Microsoft.Azure.WebJobs.Host.Listeners;

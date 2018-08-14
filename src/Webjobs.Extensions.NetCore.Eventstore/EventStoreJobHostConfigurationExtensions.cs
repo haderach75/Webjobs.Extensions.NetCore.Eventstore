@@ -10,13 +10,14 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// the event trigger.
         /// </summary>
         /// <param name="config">Web job main configuration file</param>
-        /// <param name="eventStoreConfig">Event store configuration used in webjob.</param>
-        public static void UseEventStore(this JobHostConfiguration config, EventStoreConfig eventStoreConfig = null)
+        /// <param name="configAction">Event store configuration.</param>
+        public static void UseEventStore(this JobHostConfiguration config, Action<EventStoreConfig> configAction)
         {
-            if (config == null)
+            if (configAction == null)
                 throw new ArgumentNullException("config");
-            if (eventStoreConfig == null)
-                eventStoreConfig = new EventStoreConfig();
+            
+            var eventStoreConfig = new EventStoreConfig();
+            configAction(eventStoreConfig);
 
             config.RegisterExtensionConfigProvider(eventStoreConfig);
         }
