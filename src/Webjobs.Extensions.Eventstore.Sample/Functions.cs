@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host.Triggers;
 using Webjobs.Extensions.NetCore.Eventstore;
 using Webjobs.Extensions.NetCore.Eventstore.Impl;
 

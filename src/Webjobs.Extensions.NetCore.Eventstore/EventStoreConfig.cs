@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reactive.Subjects;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host.Config;

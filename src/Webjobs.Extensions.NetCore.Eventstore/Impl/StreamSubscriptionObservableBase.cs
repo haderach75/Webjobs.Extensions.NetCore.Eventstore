@@ -105,7 +105,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 if(!sw.IsRunning)
                     sw.Start();
                 _subject.OnNext(new StreamEvent<ResolvedEvent>(resolvedEvent));
-                if (_updateCounter++ % 10000 == 0) Console.WriteLine($"{DateTime.Now:T}: Event recieved #{_updateCounter} elasped:{sw.ElapsedMilliseconds}, avarage per 10000: {sw.ElapsedMilliseconds/ ((_updateCounter / 10000) == 0 ? 1 : (_updateCounter / 10000))}ms");
+                if (_updateCounter++ % 10000 == 0) Logger.LogDebug($"{DateTime.Now:T}: Event recieved #{_updateCounter} elasped:{sw.ElapsedMilliseconds}, avarage per 10000: {sw.ElapsedMilliseconds/ ((_updateCounter / 10000) == 0 ? 1 : (_updateCounter / 10000))}ms");
                 var pos = GetLong(resolvedEvent.OriginalPosition);
                 if (pos != null)
                 {
@@ -128,7 +128,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         protected virtual void LiveProcessingStarted(EventStoreCatchUpSubscription sub)
         {
             sw.Stop();
-            Console.WriteLine($"Catchup completed in {sw.ElapsedMilliseconds}ms");
+            Logger.LogDebug($"Catchup completed in {sw.ElapsedMilliseconds}ms");
             if (!OnCompletedFired)
             {
                 OnCompletedFired = true;

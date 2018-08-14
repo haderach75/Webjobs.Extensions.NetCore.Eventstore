@@ -1,5 +1,3 @@
-using EventStore.ClientAPI;
-
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     public class SubscriptionContext

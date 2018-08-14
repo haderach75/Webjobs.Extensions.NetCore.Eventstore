@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Reactive.Linq;
-using EventStore.ClientAPI;
+﻿using System.IO;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Logging;
 using Microsoft.Extensions.Configuration;
