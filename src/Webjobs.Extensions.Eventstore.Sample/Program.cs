@@ -51,6 +51,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
         private static IServiceProvider InitializeContainer(IServiceCollection services)
         {
             services.AddSingleton<IEventPublisher<StreamEvent>, EventPublisher>();
+            services.AddTransient<Functions>();
             
             var filter = new LogCategoryFilter();
             filter.DefaultLevel = LogLevel.Warning;
