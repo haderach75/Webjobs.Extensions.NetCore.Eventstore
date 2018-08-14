@@ -172,6 +172,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             private class EventStoreTriggerValueBinder : ValueBinder
             {
                 private readonly EventTriggerData _value;
+                private static readonly Type EnumerableStream = typeof(IEnumerable<StreamEvent>);
+                private static readonly Type ObservableStream = typeof(IEnumerable<IEnumerable<StreamEvent>>);
 
                 public EventStoreTriggerValueBinder(ParameterInfo parameter, EventTriggerData value)
                     : base(parameter.ParameterType)
@@ -181,19 +183,14 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
                 public override Task<object> GetValueAsync()
                 {
-                    if (Type == typeof(EventTriggerData))
-                    {
-                        return Task.FromResult<object>(_value);
-                    }
-                    if (Type == typeof(IObservable<StreamEvent>))
-                    {
-                        return Task.FromResult<object>(_value.Events.ToObservable());
-                    }
-                    if (Type == typeof(IEnumerable<StreamEvent>))
+                    if (Type == EnumerableStream)
                     {
                         return Task.FromResult<object>(_value.Events);
                     }
-                    
+                    if (Type == ObservableStream)
+                    {
+                        return Task.FromResult<object>(_value.Events.ToObservable());
+                    }
                     return Task.FromResult<object>(_value);
                 }
 

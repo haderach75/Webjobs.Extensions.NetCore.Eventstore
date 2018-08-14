@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reactive.Subjects;
-using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host.Config;
 using Webjobs.Extensions.NetCore.Eventstore.Impl;
@@ -24,7 +23,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore
         /// If not position is supplied, the subscription will start from 
         /// the beginning.
         /// </summary>
-        public Position? LastPosition { get; set; }
+        public long? LastPosition { get; set; }
 
         /// <summary>
         /// The username used in UserCredentialFactory to gain access to event store.
