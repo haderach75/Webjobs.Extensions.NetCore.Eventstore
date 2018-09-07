@@ -122,7 +122,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
         private long? GetLong(Position? position)
         {
-            return position.HasValue ? position.Value.CommitPosition : (long?) null;
+            return position?.CommitPosition;
         }
 
         protected virtual void LiveProcessingStarted(EventStoreCatchUpSubscription sub)

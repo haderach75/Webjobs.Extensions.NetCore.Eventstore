@@ -20,8 +20,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
                 .ConfigureWebJobs(b =>
                 {
                     b.UseHostId("ecad61-62cf-47f4-93b4-6efcded6")
-                        .AddWebJobsLogging() // Enables WebJobs v1 classic logging 
-                        .AddServices()
+                        .AddWebJobsLogging()
                         .AddAzureStorageCoreServices()
                         .AddEventStore(options =>
                         {
@@ -32,9 +31,10 @@ namespace Webjobs.Extensions.Eventstore.Sample
                             options.MaxLiveQueueSize = 10000;
                         });
                 })
+                .AddServices()
                 .ConfigureLogging((context, b) =>
                 {
-                    b.SetMinimumLevel(LogLevel.Debug);
+                    b.SetMinimumLevel(LogLevel.Information);
                     b.AddConsole();
                 })
                 .UseConsoleLifetime();
