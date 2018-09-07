@@ -1,65 +1,49 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Logging;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Webjobs.Extensions.Eventstore.Sample;
 using Webjobs.Extensions.NetCore.Eventstore;
-using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
 namespace Webjobs.Extensions.Eventstore.Sample
 {
     class Program
     {
-        static void Main()
+        public static async Task Main(string[] args)
         {
-            var config = new JobHostConfiguration();
+            var builder = new HostBuilder()
+                .UseEnvironment("Development")
+                .ConfigureWebJobs(b =>
+                {
+                    b.UseHostId("ecad61-62cf-47f4-93b4-6efcded6")
+                        .AddWebJobsLogging() // Enables WebJobs v1 classic logging 
+                        .AddServices()
+                        .AddAzureStorageCoreServices()
+                        .AddEventStore(options =>
+                        {
+                            options.ConnectionString = "ConnectTo=tcp://localhost:1113;HeartbeatTimeout=20000";
+                            options.Username = "admin";
+                            options.Password = "changeit";
+                            options.LastPosition = 0;
+                            options.MaxLiveQueueSize = 10000;
+                        });
+                })
+                .ConfigureLogging((context, b) =>
+                {
+                    b.SetMinimumLevel(LogLevel.Debug);
+                    b.AddConsole();
+                })
+                .UseConsoleLifetime();
 
-            if (config.IsDevelopment)
+            var host = builder.Build();
+            using (host)
             {
-                config.UseDevelopmentSettings();
+                await host.RunAsync();
             }
-
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .AddEnvironmentVariables();
-
-            IConfigurationRoot configuration = builder.Build();
-
-            var services = new ServiceCollection();
-            
-            var serviceProvider = InitializeContainer(services);
-            config.UseEventStore(options =>
-            {
-                options.ConnectionString = $"{configuration["appSettings:EventStoreConnectionString"]}";
-                options.Username = $"{configuration["appSettings:EventStoreAdminUser"]}";
-                options.Password = $"{configuration["appSettings:EventStoreAdminPassword"]}";
-                options.LastPosition = 0;
-                options.MaxLiveQueueSize = 10000;
-            });
-                
-            var jobActivator = new ServiceCollectionJobActivator(serviceProvider);
-            config.JobActivator = jobActivator;
-            config.LoggerFactory = serviceProvider.GetService<ILoggerFactory>();
-            config.DashboardConnectionString = "";
-            var host = new JobHost(config);
-            host.RunAndBlock();
-        }
-
-        private static IServiceProvider InitializeContainer(IServiceCollection services)
-        {
-            services.AddSingleton<IEventPublisher<StreamEvent>, EventPublisher>();
-            services.AddTransient<Functions>();
-            
-            var filter = new LogCategoryFilter();
-            filter.DefaultLevel = LogLevel.Warning;
-            filter.CategoryLevels[LogCategories.Results] = LogLevel.Information;
-            filter.CategoryLevels[LogCategories.Aggregator] = LogLevel.Information;
-            services.AddSingleton(provider => new LoggerFactory().AddConsole(filter.Filter));
-
-            return services.BuildServiceProvider();
         }
     }
 }

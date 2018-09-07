@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reactive.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Extensions.Bindings;
 using Microsoft.Azure.WebJobs.Host.Bindings;
@@ -115,38 +117,47 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
                 return contract;
             }
-
-            private class LiveProcessingStartedTriggerParameterDescriptor : TriggerParameterDescriptor
+        }
+        
+        private class LiveProcessingStartedTriggerParameterDescriptor : TriggerParameterDescriptor
+        {
+            public override string GetTriggerReason(IDictionary<string, string> arguments)
             {
-                public override string GetTriggerReason(IDictionary<string, string> arguments)
-                {
-                    return string.Format("Live processing started trigger fired at {0}", DateTime.Now.ToString("o"));
-                }
+                return string.Format("Live processing started trigger fired at {0}", DateTime.Now.ToString("o"));
+            }
+        }
+
+        private class LiveProcessingStartedTriggerValueBinder : IOrderedValueBinder
+        {
+            private readonly SubscriptionContext _value;
+                
+            public BindStepOrder StepOrder { get; }
+                
+            public Type Type { get; }
+
+            public LiveProcessingStartedTriggerValueBinder(ParameterInfo parameter, SubscriptionContext value, BindStepOrder bindStepOrder = BindStepOrder.Default)
+            {
+                Type = parameter.ParameterType;
+                _value = value;
             }
 
-            private class LiveProcessingStartedTriggerValueBinder : ValueBinder
+            public Task<object> GetValueAsync()
             {
-                private readonly SubscriptionContext _value;
-
-                public LiveProcessingStartedTriggerValueBinder(ParameterInfo parameter, SubscriptionContext value)
-                    : base(parameter.ParameterType)
+                if (Type == typeof(SubscriptionContext))
                 {
-                    _value = value;
+                    return Task.FromResult<object>(_value);
                 }
+                return Task.FromResult<object>(null);
+            }
 
-                public override Task<object> GetValueAsync()
-                {
-                    if (Type == typeof(SubscriptionContext))
-                    {
-                        return Task.FromResult<object>(_value);
-                    }
-                    return Task.FromResult<object>(null);
-                }
-
-                public override string ToInvokeString()
-                {
-                    return "Live processing trigger";
-                }
+            public string ToInvokeString()
+            {
+                return string.Format("Event trigger fired at {0}", DateTime.Now.ToString("o"));
+            }
+                
+            public Task SetValueAsync(object value, CancellationToken cancellationToken)
+            {
+                return Task.FromResult(true);
             }
         }
     }

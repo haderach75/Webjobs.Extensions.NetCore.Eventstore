@@ -1,7 +1,9 @@
-﻿namespace Webjobs.Extensions.Eventstore.Sample
+﻿using System.Threading.Tasks;
+
+namespace Webjobs.Extensions.Eventstore.Sample
 {
     public interface IEventPublisher<T>
     {
-        void Publish(T item);
+        Task PublishAsync(T item);
     }
 }

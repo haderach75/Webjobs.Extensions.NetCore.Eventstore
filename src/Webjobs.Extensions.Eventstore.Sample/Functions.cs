@@ -18,13 +18,12 @@ namespace Webjobs.Extensions.Eventstore.Sample
         }
 
         [Disable(WebJobDisabledSetting)]
-        public Task ProcessEvents([EventTrigger(BatchSize = 1024, TimeOutInMilliSeconds = 100, TriggerName = "Custom trigger name")] IEnumerable<StreamEvent> events)
+        public async Task ProcessEvents([EventTrigger(BatchSize = 1024, TimeOutInMilliSeconds = 100, TriggerName = "Custom trigger name")] IEnumerable<StreamEvent> events)
         {
             foreach (var resolvedEvent in events)
             {
-                _eventPublisher.Publish(resolvedEvent);
+                await _eventPublisher.PublishAsync(resolvedEvent);
             }
-            return Task.CompletedTask;
         }
 
         public void LiveProcessingStarted([LiveProcessingStarted] SubscriptionContext context)
