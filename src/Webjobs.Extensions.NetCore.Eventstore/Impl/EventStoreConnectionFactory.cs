@@ -8,7 +8,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         public IEventStoreConnection Create(string connectionString, ILogger logger, string connectionName = null)
         {
             var connectionSettings = ConnectionSettings.Create()
-                .FailOnNoServerResponse()
                 .SetGossipTimeout(TimeSpan.FromMilliseconds(1000))
                 .UseCustomLogger(logger)
                 .KeepReconnecting()

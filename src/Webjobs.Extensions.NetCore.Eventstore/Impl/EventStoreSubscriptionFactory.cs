@@ -7,22 +7,22 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     public class EventStoreSubscriptionFactory : IEventStoreSubscriptionFactory
     {
-        public IEventStoreSubscription Create(EventStoreConfig eventStoreConfig, ILoggerFactory loggerFactory, string stream = null)
+        public IEventStoreSubscription Create(EventStoreOptions eventStoreOptions, IEventStoreConnectionFactory eventStoreConnectionFactory, ILoggerFactory loggerFactory, string stream = null)
         {
-            var commitedPosition = eventStoreConfig.LastPosition;
-            var userCredentials = new UserCredentials(eventStoreConfig.Username, eventStoreConfig.Password);
-            var eventStoreConnection = eventStoreConfig.EventStoreConnectionFactory.Create(eventStoreConfig.ConnectionString, 
+            var commitedPosition = eventStoreOptions.LastPosition;
+            var userCredentials = new UserCredentials(eventStoreOptions.Username, eventStoreOptions.Password);
+            var eventStoreConnection = eventStoreConnectionFactory.Create(eventStoreOptions.ConnectionString, 
                 new EventStoreLogger(loggerFactory), ConnectionName());
             
             return string.IsNullOrWhiteSpace(stream)
                 ? (IEventStoreSubscription) new CatchUpSubscriptionObservable(eventStoreConnection,
                     commitedPosition,
-                    eventStoreConfig.MaxLiveQueueSize,
+                    eventStoreOptions.MaxLiveQueueSize,
                     userCredentials, loggerFactory.CreateLogger<CatchUpSubscriptionObservable>())
                 : new StreamCatchUpSubscriptionObservable(eventStoreConnection,
                     stream,
                     commitedPosition,
-                    eventStoreConfig.MaxLiveQueueSize,
+                    eventStoreOptions.MaxLiveQueueSize,
                     userCredentials, loggerFactory.CreateLogger<StreamCatchUpSubscriptionObservable>());
         }
 

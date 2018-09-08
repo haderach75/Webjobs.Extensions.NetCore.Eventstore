@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <RuntimeFrameworkVersion>2.1.2</RuntimeFrameworkVersion>
-    <Version>1.0.6</Version>
+    <Version>1.0.7</Version>
     <Description>Extension made in .Net Core to process an event store subscription in a webjob.</Description>
     <Copyright>Copyright 2018</Copyright>
     <Authors>Michael Hultman</Authors>
@@ -13,7 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EventStore.ClientAPI.NetCore" Version="4.1.0.23" />
-    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="3.0.0-beta5" />
+    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="3.0.0-beta8" />
     <PackageReference Include="System.Reactive" Version="4.1.0" />
   </ItemGroup>
 </Project>
