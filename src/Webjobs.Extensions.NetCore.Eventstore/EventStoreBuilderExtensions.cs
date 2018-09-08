@@ -6,7 +6,7 @@ using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
 namespace Webjobs.Extensions.NetCore.Eventstore
 {
-    public static class EventStoreWebJobsBuilderExtensions
+    public static class EventStoreBuilderExtensions
     {
         /// <summary>
         /// Configures and starts an event store subscription and binds

@@ -3,7 +3,7 @@ using Microsoft.Azure.WebJobs.Hosting;
 
 namespace Webjobs.Extensions.NetCore.Eventstore
 {
-    public class EventStoreWebJobsStartup : IWebJobsStartup
+    public class EventStoreStartup : IWebJobsStartup
     {
         public void Configure(IWebJobsBuilder builder)
         {
