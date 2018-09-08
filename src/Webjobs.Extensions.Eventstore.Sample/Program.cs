@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.IO;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Logging;
 using Microsoft.Extensions.Configuration;
