@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using EventStore.ClientAPI;
+using Microsoft.Extensions.Logging;
 
 namespace Webjobs.Extensions.NetCore.Eventstore
 {
@@ -6,6 +7,10 @@ namespace Webjobs.Extensions.NetCore.Eventstore
     {
         IEventStoreSubscription Create(EventStoreOptions eventStoreOptions,
             IEventStoreConnectionFactory eventStoreConnectionFactory, ILoggerFactory loggerFactory,
+            string stream = null);
+        
+        IEventStoreSubscription Create(EventStoreOptions eventStoreOptions,
+            IEventStoreConnection eventStoreConnection, ILoggerFactory loggerFactory,
             string stream = null);
     }
 }

@@ -11,7 +11,7 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
-    public abstract class SubscriptionObservableBase : IEventStoreSubscription
+    public abstract class SubscriptionBase : IEventStoreSubscription
     {
         protected readonly IEventStoreConnection Connection;
         protected readonly UserCredentials UserCredentials;
@@ -25,7 +25,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         protected bool IsStarted;
         protected readonly ILogger Logger;
         
-        protected SubscriptionObservableBase(IEventStoreConnection connection, 
+        protected SubscriptionBase(IEventStoreConnection connection, 
             long? lastCheckpoint,
             int maxLiveQueueMessage,
             UserCredentials userCredentials, 
