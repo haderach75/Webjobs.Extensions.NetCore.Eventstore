@@ -101,7 +101,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         public void Cancel()
         {
             _logger.LogInformation("Cancelling event listener.");
-            _observable?.Dispose();
             _eventStoreSubscription?.Stop();
         }
 
@@ -121,7 +120,6 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         {
             if (isDisposing)
             {
-                Cancel();
                 _eventStoreSubscription = null;
             }
             GC.SuppressFinalize(this);
