@@ -19,7 +19,6 @@ namespace Webjobs.Extensions.Eventstore.Sample
                 .ConfigureWebJobs(b =>
                 {
                     b.UseHostId("ecad61-62cf-47f4-93b4-6efcded6")
-                        .AddWebJobsLogging()
                         .AddAzureStorageCoreServices()
                         .AddEventStore(options =>
                         {

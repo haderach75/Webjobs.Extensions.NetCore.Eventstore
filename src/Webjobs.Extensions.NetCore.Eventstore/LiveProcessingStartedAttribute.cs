@@ -3,7 +3,7 @@ using Microsoft.Azure.WebJobs.Description;
 
 namespace Webjobs.Extensions.NetCore.Eventstore
 {
-    [Binding(TriggerHandlesReturnValue = false)]
+    [Binding]
     [AttributeUsage(AttributeTargets.Parameter)]
     public class LiveProcessingStartedAttribute : Attribute
     {
