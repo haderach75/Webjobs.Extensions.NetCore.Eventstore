@@ -2,17 +2,16 @@ using System;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.SystemData;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
     public class CatchUpSubscription : SubscriptionBase
     {
-        public CatchUpSubscription(IEventStoreConnection connection,
-            long? lastCheckpoint,
-            int maxLiveQueueMessage,
-            UserCredentials userCredentials,
-            ILogger logger) : base(connection, lastCheckpoint, maxLiveQueueMessage, userCredentials, logger)
+        public CatchUpSubscription(IEventStoreConnectionFactory eventStoreConnectionFactory,
+            EventStoreOptions options,
+            ILogger logger) : base(eventStoreConnectionFactory, options, logger)
         {
         }
         

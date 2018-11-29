@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Host.Executors;
@@ -14,6 +15,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     public class EventStoreListener : IListener
     {
         private readonly ITriggeredFunctionExecutor _executor;
+        private readonly EventProcessor _eventProcessor;
         private IEventStoreSubscription _eventStoreSubscription;
         private readonly IEventFilter _eventFilter;
         private readonly IObserver<SubscriptionContext> _observer;
@@ -25,7 +27,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private readonly string _triggerName;
         private readonly int _batchSize;
         
-        public EventStoreListener(ITriggeredFunctionExecutor executor, 
+        public EventStoreListener(ITriggeredFunctionExecutor executor,
+                                  EventProcessor eventProcessor, 
                                   IEventStoreSubscription eventStoreSubscription,
                                   IEventFilter eventFilter,
                                   IObserver<SubscriptionContext> observer,
@@ -39,6 +42,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             _triggerName = triggerName;
             _logger = logger;
             _executor = executor;
+            _eventProcessor = eventProcessor;
             _eventStoreSubscription = eventStoreSubscription;
             _eventFilter = eventFilter;
             _observer = observer;
@@ -47,22 +51,27 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            _observable = GetObservable()
-                .Subscribe(ProcessEvent, OnCompleted);
+            _observable = CreateObservable()
+                .SubscribeAsync(ProcessEventAsync, OnError, OnCompleted);
             
             _logger.LogInformation("Observable subscription started.");
 
             return _eventStoreSubscription.StartAsync(cancellationToken, _batchSize);
         }
 
+        private void OnError(Exception obj)
+        {
+            _eventStoreSubscription.Stop();
+        }
+
         private IDisposable RestartSubscription()
         {
             _logger.LogInformation("Restarting observable subscription.");
-            _observable = GetObservable().Catch(GetObservable()).Subscribe(ProcessEvent);
+            _observable = CreateObservable().Catch(CreateObservable()).SubscribeAsync(ProcessEventAsync);
             return _observable;
         }
 
-        private IObservable<IEnumerable<StreamEvent>> GetObservable()
+        private IObservable<IEnumerable<StreamEvent>> CreateObservable()
         {
             var observable = (IObservable<StreamEvent>) _eventStoreSubscription;
             if (_eventFilter != null)
@@ -88,14 +97,16 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 
             return Task.FromResult(true);
         }
-
-        private void ProcessEvent(IEnumerable<StreamEvent> events)
+        
+        private async Task ProcessEventAsync(IEnumerable<StreamEvent> events)
         {
+            await _eventProcessor.BeginProcessingEventsAsync(events, _cancellationToken).ConfigureAwait(false);
             TriggeredFunctionData input = new TriggeredFunctionData
             {
                 TriggerValue = new EventTriggerData(events)
             };
-            _executor.TryExecuteAsync(input, _cancellationToken).Wait();
+            var functionResult = await _executor.TryExecuteAsync(input, _cancellationToken).ConfigureAwait(false);
+            await _eventProcessor.CompleteProcessingEventsAsync(events, functionResult, _cancellationToken);
         }
         
         public void Cancel()

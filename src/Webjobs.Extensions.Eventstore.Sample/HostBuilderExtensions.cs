@@ -12,6 +12,7 @@ namespace Webjobs.Extensions.Eventstore.Sample
         {
             builder.ConfigureServices(services =>
             {
+                services.AddSingleton<EventProcessor, FailFastEventProcessor>();
                 services.AddSingleton<IEventPublisher<StreamEvent>, EventPublisher>();
                 services.AddTransient<Functions>();
                 services.AddSingleton<IJobActivator>(provider => new ServiceCollectionJobActivator(provider));

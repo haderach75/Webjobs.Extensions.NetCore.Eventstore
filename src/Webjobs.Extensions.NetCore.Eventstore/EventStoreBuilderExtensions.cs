@@ -2,6 +2,7 @@
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host.Triggers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Webjobs.Extensions.NetCore.Eventstore.Impl;
 
 namespace Webjobs.Extensions.NetCore.Eventstore
@@ -19,10 +20,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore
             builder.AddExtension<EventStoreConfigProvider>()
                 .BindOptions<EventStoreOptions>();
 
-            builder.Services.AddSingleton<IEventFilter, NullEventFilter>();
-            builder.Services.AddSingleton<IEventStoreConnectionFactory, EventStoreConnectionFactory>();
-            builder.Services.AddSingleton<IEventStoreSubscriptionFactory, EventStoreSubscriptionFactory>();
-            builder.Services.AddSingleton<INameResolver, NullNameResolver>();
+            builder.Services.TryAddSingleton<IEventFilter, NullEventFilter>();
+            builder.Services.TryAddSingleton<IEventStoreConnectionFactory, EventStoreConnectionFactory>();
+            builder.Services.TryAddSingleton<ISubscriptionProvider, SubscriptionProvider>();
+            builder.Services.TryAddSingleton<INameResolver, NullNameResolver>();
+            builder.Services.TryAddSingleton<EventProcessor>();
 
             return builder;
         }

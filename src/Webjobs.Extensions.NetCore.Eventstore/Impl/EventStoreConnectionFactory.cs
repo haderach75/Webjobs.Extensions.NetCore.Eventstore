@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using EventStore.ClientAPI;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
@@ -12,7 +13,9 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 .UseCustomLogger(logger)
                 .KeepReconnecting()
                 .KeepRetrying()
-                .SetMaxDiscoverAttempts(int.MaxValue);            
+                .SetMaxDiscoverAttempts(int.MaxValue);
+
+            connectionName = connectionName ?? ConnectionName();
             var conn = EventStoreConnection.Create(connectionString, connectionSettings, connectionName);
             
             conn.Connected += (s, e) => logger.Info("Connected to EventStore");
@@ -21,6 +24,16 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             conn.ErrorOccurred += (sender, args) => logger.Error($"Exception ({args.Exception.GetType().Name}): {args.Exception}");
             conn.AuthenticationFailed += (sender, args) => logger.Error($"EventStore authentication failed: {args.Reason}");
             return conn;
+        }
+        
+        private static string ConnectionName()
+        {
+            var assemblyName = Assembly.GetEntryAssembly().GetName().Name;
+            if (assemblyName.Contains("."))
+            {
+                return $"{assemblyName.Substring(assemblyName.LastIndexOf('.') + 1)}-{Guid.NewGuid()}";
+            }
+            return $"{assemblyName}-{Guid.NewGuid()}";;
         }
     }
 }

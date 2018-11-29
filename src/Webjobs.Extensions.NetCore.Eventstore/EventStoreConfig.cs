@@ -15,22 +15,23 @@ namespace Webjobs.Extensions.NetCore.Eventstore
     public class EventStoreConfigProvider : IExtensionConfigProvider
     {
         private readonly ILoggerFactory _loggerFactory;
-        private readonly IEventStoreSubscriptionFactory _eventStoreSubscriptionFactory;
+        private readonly ISubscriptionProvider _subscriptionProvider;
+        private readonly EventProcessor _eventProcessor;
         private readonly IEventStoreConnectionFactory _eventStoreConnectionFactory;
         private readonly IEventFilter _eventFilter;
         private readonly IOptions<EventStoreOptions> _options;
         private readonly INameResolver _nameResolver;
 
         public EventStoreConfigProvider(ILoggerFactory loggerFactory, 
-                                        IEventStoreSubscriptionFactory eventStoreSubscriptionFactory,
-                                        IEventStoreConnectionFactory eventStoreConnectionFactory,
+                                        ISubscriptionProvider subscriptionProvider,
+                                        EventProcessor eventProcessor,
                                         IEventFilter eventFilter,
                                         INameResolver nameResolver,
                                         IOptions<EventStoreOptions> options)
         {
             _loggerFactory = loggerFactory;
-            _eventStoreSubscriptionFactory = eventStoreSubscriptionFactory;
-            _eventStoreConnectionFactory = eventStoreConnectionFactory;
+            _subscriptionProvider = subscriptionProvider;
+            _eventProcessor = eventProcessor;
             _eventFilter = eventFilter;
             _options = options;
             _nameResolver = nameResolver;
@@ -50,11 +51,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore
             var subject = new Subject<SubscriptionContext>();
             
             var triggerBindingProvider = new EventTriggerAttributeBindingProvider(_options,
+                                                                                  _eventProcessor,
                                                                                   subject,
                                                                                   _nameResolver,
                                                                                   _loggerFactory,
-                                                                                  _eventStoreSubscriptionFactory, 
-                                                                                  _eventStoreConnectionFactory,
+                                                                                  _subscriptionProvider, 
                                                                                   _eventFilter);
             context.AddBindingRule<EventTriggerAttribute>().BindToTrigger(triggerBindingProvider);
             

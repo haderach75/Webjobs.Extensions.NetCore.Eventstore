@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reactive.Subjects;
@@ -6,15 +8,47 @@ using System.Threading;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.SystemData;
+using Microsoft.Azure.WebJobs.Host.Executors;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
 {
+    public class EventProcessor
+    {
+        public virtual async Task<bool> BeginProcessingEventsAsync(IEnumerable<StreamEvent> streamEvents, CancellationToken cancellationToken)
+        {
+            return await Task.FromResult<bool>(true);
+        }
+        
+        public virtual Task CompleteProcessingEventsAsync(IEnumerable<StreamEvent> streamEvents, FunctionResult result, CancellationToken cancellationToken)
+        {
+            if (result == null)
+            {
+                throw new ArgumentNullException(nameof(result));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!result.Succeeded)
+            {
+                // if the invocation failed, we must propagate the
+                // exception back to SB so it can handle message state
+                // correctly
+                throw result.Exception;
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
     public abstract class SubscriptionBase : IEventStoreSubscription
     {
-        protected readonly IEventStoreConnection Connection;
+        protected IEventStoreConnection Connection;
         protected readonly UserCredentials UserCredentials;
+        private readonly IEventStoreConnectionFactory _eventStoreConnectionFactory;
+        private readonly string _connectionString;
         private long? _lastCheckpoint;
         protected int BatchSize;
         protected readonly int MaxLiveQueueMessage;
@@ -25,17 +59,16 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         protected bool IsStarted;
         protected readonly ILogger Logger;
         
-        protected SubscriptionBase(IEventStoreConnection connection, 
-            long? lastCheckpoint,
-            int maxLiveQueueMessage,
-            UserCredentials userCredentials, 
+        protected SubscriptionBase(IEventStoreConnectionFactory eventStoreConnectionFactory,
+            EventStoreOptions options,
             ILogger logger)
         {
-            _lastCheckpoint = lastCheckpoint;
-            UserCredentials = userCredentials;
+            _eventStoreConnectionFactory = eventStoreConnectionFactory;
+            _connectionString = options.ConnectionString;
+            _lastCheckpoint = options.LastPosition;
+            UserCredentials = new UserCredentials(options.Username, options.Password);;
             Logger = logger;
-            Connection = connection;
-            MaxLiveQueueMessage = maxLiveQueueMessage;
+            MaxLiveQueueMessage = options.MaxLiveQueueSize;
 
             _subject = new Subject<StreamEvent>();
         }
@@ -48,6 +81,7 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             _cancellationToken = cancellationToken;
             if (!IsStarted)
             {
+                Connection = EventStoreConnection.Create(_connectionString);
                 await Connection.ConnectAsync();
                 StartCatchUpSubscription(_lastCheckpoint);
             }
@@ -87,6 +121,20 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             
             Stop();
             StartCatchUpSubscription(position);
+        }
+        
+        public void RestartSubscription() {
+            if (Subscription == null) return;
+            Subscription.Stop();
+            Logger.LogInformation("Restarting subscription...");
+            StartCatchUpSubscription(_lastCheckpoint);
+        }
+
+        public void RestartSubscriptionWithNewConnection() {
+            if (Subscription == null) return;
+            Subscription.Stop();
+            Logger.LogInformation("Restarting subscription...");
+            StartCatchUpSubscription(_lastCheckpoint);
         }
 
         private Stopwatch sw = new Stopwatch();
@@ -135,13 +183,22 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 _subject.OnCompleted();
             }
         }
-
-        protected virtual void SubscriptionDropped(EventStoreCatchUpSubscription sub, SubscriptionDropReason reason, Exception e)
-        {
-            var msg = (e?.Message + " " + (e?.InnerException?.Message ?? "")).TrimEnd();
-            Logger.LogWarning($"Subscription dropped because {reason}: {msg}");
+        
+        protected void SubscriptionDropped(EventStoreCatchUpSubscription sub, SubscriptionDropReason reason, Exception ex) {
+            var msg = (ex?.Message + " " + (ex?.InnerException?.Message ?? "")).TrimEnd();
+            if (reason == SubscriptionDropReason.ConnectionClosed || // Will resubscribe automatically
+                reason == SubscriptionDropReason.ProcessingQueueOverflow ||
+                reason == SubscriptionDropReason.UserInitiated) {
+                _subject.OnError(ex ?? new Exception($"Subscription dropped because {reason}: {msg}"));
+                Logger.LogInformation("Subscription dropped because {Reason}: {Message}", reason, msg);
+            }
+            else
+                Logger.LogError("Subscription dropped because {Reason}: {Message}", reason, msg);
             if (reason == SubscriptionDropReason.ProcessingQueueOverflow)
-                Restart(_lastCheckpoint);
+                RestartSubscription();
+            else if (reason == SubscriptionDropReason.CatchUpError && ex is ObjectDisposedException) {
+                RestartSubscriptionWithNewConnection();
+            }
         }
     }
 }

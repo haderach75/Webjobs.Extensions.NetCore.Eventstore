@@ -21,26 +21,26 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     internal class EventTriggerAttributeBindingProvider : ITriggerBindingProvider
     {
         private readonly INameResolver _nameResolver;
-        private readonly IEventStoreSubscriptionFactory _eventStoreSubscriptionFactory;
-        private readonly IEventStoreConnectionFactory _eventStoreConnectionFactory;
+        private readonly ISubscriptionProvider _subscriptionProvider;
         private readonly IEventFilter _eventFilter;
         private readonly IOptions<EventStoreOptions> _eventStoreOptions;
+        private readonly EventProcessor _eventProcessor;
         private readonly IObserver<SubscriptionContext> _observer;
         private readonly ILoggerFactory _loggerFactory;
         private EventTriggerAttribute _attribute;
 
         public EventTriggerAttributeBindingProvider(
             IOptions<EventStoreOptions> eventStoreOptions,
+            EventProcessor eventProcessor,
             IObserver<SubscriptionContext> observer,
             INameResolver nameResolver,
             ILoggerFactory loggerFactory, 
-            IEventStoreSubscriptionFactory eventStoreSubscriptionFactory,
-            IEventStoreConnectionFactory eventStoreConnectionFactory,
+            ISubscriptionProvider subscriptionProvider,
             IEventFilter eventFilter)
         {
             _eventStoreOptions = eventStoreOptions ?? throw new ArgumentNullException(nameof(eventStoreOptions));
-            _eventStoreSubscriptionFactory = eventStoreSubscriptionFactory ?? throw new ArgumentNullException(nameof(eventStoreSubscriptionFactory));
-            _eventStoreConnectionFactory = eventStoreConnectionFactory ?? throw new ArgumentNullException(nameof(eventStoreConnectionFactory));
+            _eventProcessor = eventProcessor ?? throw new ArgumentNullException(nameof(eventProcessor));
+            _subscriptionProvider = subscriptionProvider ?? throw new ArgumentNullException(nameof(subscriptionProvider));
             _observer = observer ?? throw new ArgumentNullException(nameof(observer));
             _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
             _eventFilter = eventFilter ?? throw new ArgumentNullException(nameof(eventFilter));
@@ -78,8 +78,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             }
 
             return Task.FromResult<ITriggerBinding>(new EventTriggerBinding(_eventStoreOptions, 
-                                                    _eventStoreSubscriptionFactory, 
-                                                    _eventStoreConnectionFactory, 
+                                                    _eventProcessor,
+                                                    _subscriptionProvider, 
                                                     _eventFilter, 
                                                     parameter,
                                                     _attribute,
@@ -100,8 +100,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
         private class EventTriggerBinding : ITriggerBinding
         {
             private readonly IOptions<EventStoreOptions> _eventStoreOptions;
-            private readonly IEventStoreSubscriptionFactory _eventStoreSubscriptionFactory;
-            private readonly IEventStoreConnectionFactory _eventStoreConnectionFactory;
+            private readonly EventProcessor _eventProcessor;
+            private readonly ISubscriptionProvider _subscriptionProvider;
             private readonly IEventFilter _eventFilter;
             private readonly ParameterInfo _parameter;
             private readonly EventTriggerAttribute _attribute;
@@ -109,8 +109,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             private readonly ILoggerFactory _loggerFactory;
 
             public EventTriggerBinding(IOptions<EventStoreOptions> eventStoreOptions,
-                IEventStoreSubscriptionFactory eventStoreSubscriptionFactory,
-                IEventStoreConnectionFactory eventStoreConnectionFactory,
+                EventProcessor eventProcessor,
+                ISubscriptionProvider subscriptionProvider,
                 IEventFilter eventFilter,
                 ParameterInfo parameter,
                 EventTriggerAttribute attribute,
@@ -118,8 +118,8 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
                 ILoggerFactory loggerFactory)
             {
                 _eventStoreOptions = eventStoreOptions;
-                _eventStoreSubscriptionFactory = eventStoreSubscriptionFactory;
-                _eventStoreConnectionFactory = eventStoreConnectionFactory;
+                _eventProcessor = eventProcessor;
+                _subscriptionProvider = subscriptionProvider;
                 _eventFilter = eventFilter;
                 _parameter = parameter;
                 _attribute = attribute;
@@ -147,10 +147,11 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
                 var eventStoreSubscription = 
-                    _eventStoreSubscriptionFactory.Create(_eventStoreOptions.Value, _eventStoreConnectionFactory, _loggerFactory,
+                    _subscriptionProvider.Create(_eventStoreOptions.Value, _loggerFactory,
                         _attribute.Stream);
 
                 IListener listener = new EventStoreListener(context.Executor,
+                    _eventProcessor,
                     eventStoreSubscription,
                     _eventFilter,
                     _observer,

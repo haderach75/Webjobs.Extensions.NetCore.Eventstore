@@ -2,6 +2,7 @@ using System;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.SystemData;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace Webjobs.Extensions.NetCore.Eventstore.Impl
@@ -9,12 +10,10 @@ namespace Webjobs.Extensions.NetCore.Eventstore.Impl
     public class StreamCatchUpSubscription : SubscriptionBase
     {
         private readonly string _streamName;
-        public StreamCatchUpSubscription(IEventStoreConnection connection, 
+        public StreamCatchUpSubscription(IEventStoreConnectionFactory connection,
             string streamName,
-            long? lastCheckpoint,
-            int maxLiveQueueMessage,
-            UserCredentials userCredentials,
-            ILogger logger) : base(connection, lastCheckpoint, maxLiveQueueMessage, userCredentials, logger)
+            EventStoreOptions options,
+            ILogger logger) : base(connection, options, logger)
         {
             _streamName = streamName;
         }
