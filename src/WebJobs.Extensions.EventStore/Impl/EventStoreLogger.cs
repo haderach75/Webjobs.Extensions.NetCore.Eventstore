@@ -2,17 +2,22 @@
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using ILogger = EventStore.ClientAPI.ILogger;
+using IESLogger = EventStore.ClientAPI.ILogger;
 
 namespace WebJobs.Extensions.EventStore.Impl
 {
-    public class EventStoreLogger : ILogger
+    public class EventStoreLogger : IESLogger
     {
-        private readonly Microsoft.Extensions.Logging.ILogger _logger;
+        private readonly ILogger _logger;
 
         public EventStoreLogger(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger("EventStoreConnection");
+        }
+        
+        public EventStoreLogger(ILogger logger)
+        {
+            _logger = logger;
         }
         
         public void Error(string format, params object[] args)

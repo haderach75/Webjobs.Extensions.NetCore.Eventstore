@@ -69,6 +69,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             MaxLiveQueueMessage = options.MaxLiveQueueSize;
 
             _subject = new Subject<StreamEvent>();
+            Connection = _eventStoreConnectionFactory.Create(_connectionString, Logger);
         }
 
         public EventStoreCatchUpSubscription Subscription { get; protected set; }
@@ -81,7 +82,6 @@ namespace WebJobs.Extensions.EventStore.Impl
 
             if (!IsStarted)
             {
-                Connection = _eventStoreConnectionFactory.Create(_connectionString, Logger);
                 await Connection.ConnectAsync();
                 StartCatchUpSubscription(_lastCheckpoint);
             }
@@ -125,6 +125,8 @@ namespace WebJobs.Extensions.EventStore.Impl
         public void RestartSubscriptionWithNewConnection() {
             if (Subscription == null) return;
             Subscription.Stop();
+            
+            Connection = _eventStoreConnectionFactory.Create(_connectionString, Logger);
             Logger.LogInformation("Restarting subscription...");
             StartCatchUpSubscription(_lastCheckpoint);
         }
