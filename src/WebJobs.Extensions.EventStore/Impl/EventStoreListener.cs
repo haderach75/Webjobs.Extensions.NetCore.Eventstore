@@ -99,13 +99,14 @@ namespace WebJobs.Extensions.EventStore.Impl
         
         private async Task ProcessEventAsync(IEnumerable<StreamEvent> events)
         {
-            await _eventProcessor.BeginProcessingEventsAsync(events, _cancellationToken).ConfigureAwait(false);
-            TriggeredFunctionData input = new TriggeredFunctionData
+            var streamEvents = events.ToList();
+            await _eventProcessor.BeginProcessingEventsAsync(streamEvents, _cancellationToken).ConfigureAwait(false);
+            var input = new TriggeredFunctionData
             {
-                TriggerValue = new EventTriggerData(events)
+                TriggerValue = new EventTriggerData(streamEvents)
             };
             var functionResult = await _executor.TryExecuteAsync(input, _cancellationToken).ConfigureAwait(false);
-            await _eventProcessor.CompleteProcessingEventsAsync(events, functionResult, _cancellationToken);
+            await _eventProcessor.CompleteProcessingEventsAsync(streamEvents, functionResult, _cancellationToken);
         }
         
         public void Cancel()

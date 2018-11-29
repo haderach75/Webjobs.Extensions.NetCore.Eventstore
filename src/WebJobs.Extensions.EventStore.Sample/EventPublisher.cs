@@ -16,8 +16,6 @@ namespace WebJobs.Extensions.EventStore.Sample
             
             Console.WriteLine($"Message as JSON: {json}");
             
-            throw new InvalidOperationException();
-
             return Task.CompletedTask;
         }
     }

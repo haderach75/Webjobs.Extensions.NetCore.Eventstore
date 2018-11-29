@@ -18,7 +18,7 @@ namespace WebJobs.Extensions.EventStore.Sample
             _jobActivator = jobActivator;
         }
         
-        public override async Task CompleteProcessingEventsAsync(IEnumerable<StreamEvent> streamEvents, FunctionResult result, CancellationToken cancellationToken)
+        public override Task CompleteProcessingEventsAsync(IEnumerable<StreamEvent> streamEvents, FunctionResult result, CancellationToken cancellationToken)
         {
             if (result.Exception != null)
             {
@@ -28,6 +28,7 @@ namespace WebJobs.Extensions.EventStore.Sample
                     await jobHost.StopAsync();
                 });
             }
+            return Task.CompletedTask;
         }
     }
     
