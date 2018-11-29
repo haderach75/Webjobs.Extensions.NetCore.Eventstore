@@ -188,6 +188,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             }
             else
                 Logger.LogError("Subscription dropped because {Reason}: {Message}", reason, msg);
+            
             if (reason == SubscriptionDropReason.ProcessingQueueOverflow)
                 RestartSubscription();
             else if (reason == SubscriptionDropReason.CatchUpError && ex is ObjectDisposedException) {

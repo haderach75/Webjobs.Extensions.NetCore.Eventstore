@@ -47,7 +47,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             return Task.FromResult<ITriggerBinding>(new LiveProcessingStartedTriggerBinding(_observable, parameter, _loggerFactory));
         }
 
-        internal class LiveProcessingStartedTriggerBinding : ITriggerBinding
+        private class LiveProcessingStartedTriggerBinding : ITriggerBinding
         {
             private readonly IObservable<SubscriptionContext> _observable;
             private readonly ParameterInfo _parameter;
@@ -135,6 +135,7 @@ namespace WebJobs.Extensions.EventStore.Impl
 
             public LiveProcessingStartedTriggerValueBinder(ParameterInfo parameter, SubscriptionContext value, BindStepOrder bindStepOrder = BindStepOrder.Default)
             {
+                StepOrder = bindStepOrder;
                 Type = parameter.ParameterType;
                 _value = value;
             }
@@ -150,7 +151,7 @@ namespace WebJobs.Extensions.EventStore.Impl
 
             public string ToInvokeString()
             {
-                return string.Format("Event trigger fired at {0}", DateTime.Now.ToString("o"));
+                return $"Event trigger fired at {DateTime.Now:o}";
             }
                 
             public Task SetValueAsync(object value, CancellationToken cancellationToken)

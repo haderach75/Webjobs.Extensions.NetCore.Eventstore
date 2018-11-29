@@ -28,18 +28,18 @@ namespace WebJobs.Extensions.EventStore.Impl
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            _observer = _observable.Subscribe(OnNext);
+            _observer = _observable.SubscribeAsync(OnNext);
             
             return Task.FromResult(true);
         }
 
-        private void OnNext(SubscriptionContext context)
+        private async Task OnNext(SubscriptionContext context)
         {
             var input = new TriggeredFunctionData
             {
                 TriggerValue = context
             };
-            _executor.TryExecuteAsync(input, _cancellationToken).Wait();
+            await _executor.TryExecuteAsync(input, _cancellationToken);
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

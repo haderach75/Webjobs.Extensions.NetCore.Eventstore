@@ -18,7 +18,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         {
             return source.Select(e => Observable.Defer(() => onNext(e).ToObservable())).Concat()
                 .Subscribe(
-                    e => { }, // empty
+                    e => { },
                     onError,
                     onCompleted);
         }

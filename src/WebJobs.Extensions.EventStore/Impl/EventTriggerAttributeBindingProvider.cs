@@ -217,7 +217,7 @@ namespace WebJobs.Extensions.EventStore.Impl
 
             public string ToInvokeString()
             {
-                return string.Format("Event trigger fired at {0}", DateTime.Now.ToString("o"));
+                return $"Event trigger fired at {DateTime.Now:o}";
             }
 
             public Type Type { get; }

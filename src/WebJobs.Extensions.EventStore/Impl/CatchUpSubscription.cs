@@ -8,8 +8,7 @@ namespace WebJobs.Extensions.EventStore.Impl
     public class CatchUpSubscription : SubscriptionBase
     {
         public CatchUpSubscription(IEventStoreConnectionFactory eventStoreConnectionFactory,
-            EventStoreOptions options,
-            ILogger logger) : base(eventStoreConnectionFactory, options, logger)
+            EventStoreOptions options, ILogger logger) : base(eventStoreConnectionFactory, options, logger)
         {
         }
         
