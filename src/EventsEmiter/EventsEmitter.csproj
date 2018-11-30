@@ -11,7 +11,7 @@
     <PackageReference Include="System.Reactive" Version="4.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Webjobs.Extensions.Eventstore.Sample\Webjobs.Extensions.Eventstore.Sample.csproj" />
-    <ProjectReference Include="..\Webjobs.Extensions.NetCore.Eventstore\Webjobs.Extensions.NetCore.Eventstore.csproj" />
+    <ProjectReference Include="..\WebJobs.Extensions.EventStore.Sample\WebJobs.Extensions.EventStore.Sample.csproj" />
+    <ProjectReference Include="..\WebJobs.Extensions.EventStore\WebJobs.Extensions.EventStore.csproj" />
   </ItemGroup>
 </Project>
