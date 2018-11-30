@@ -5,7 +5,7 @@ using System.Text;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.SystemData;
 using Newtonsoft.Json;
-using Webjobs.Extensions.Eventstore.Sample;
+using WebJobs.Extensions.EventStore.Sample;
 
 namespace EventsEmitter
 {
