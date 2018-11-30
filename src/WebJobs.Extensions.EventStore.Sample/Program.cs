@@ -13,7 +13,7 @@ namespace WebJobs.Extensions.EventStore.Sample
                 .UseEnvironment("Development")
                 .ConfigureWebJobs(b =>
                 {
-                    b.UseHostId("Sample")
+                    b.UseHostId("sample")
                         .AddAzureStorageCoreServices()
                         .AddEventStore(options =>
                         {

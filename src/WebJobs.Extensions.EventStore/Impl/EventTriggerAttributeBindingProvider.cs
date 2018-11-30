@@ -87,12 +87,7 @@ namespace WebJobs.Extensions.EventStore.Impl
 
         private string Resolve(string queueName)
         {
-            if (_nameResolver == null)
-            {
-                return queueName;
-            }
-
-            return _nameResolver.ResolveWholeString(queueName);
+            return _nameResolver == null ? queueName : _nameResolver.ResolveWholeString(queueName);
         }
 
         private class EventTriggerBinding : ITriggerBinding
@@ -145,8 +140,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             public Task<IListener> CreateListenerAsync(ListenerFactoryContext context)
             {
                 var eventStoreSubscription = 
-                    _subscriptionProvider.Create(_eventStoreOptions.Value, _loggerFactory,
-                        _attribute.Stream);
+                    _subscriptionProvider.Create(_attribute.Stream);
 
                 IListener listener = new EventStoreListener(context.Executor,
                     _eventProcessor,
