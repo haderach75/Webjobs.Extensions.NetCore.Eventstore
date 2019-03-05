@@ -26,6 +26,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         protected bool OnCompletedFired;
         protected bool IsStarted;
         protected readonly ILogger Logger;
+        private Action _catchUpCompleted;
         
         protected SubscriptionBase(IEventStoreConnectionFactory eventStoreConnectionFactory,
             EventStoreOptions options,
@@ -55,6 +56,11 @@ namespace WebJobs.Extensions.EventStore.Impl
                 await Connection.ConnectAsync();
                 StartCatchUpSubscription(_lastCheckpoint);
             }
+        }
+        
+        public void RegisterCatchUpCompletedHandler(Action catchUpCompleted)
+        {
+            _catchUpCompleted = catchUpCompleted;
         }
 
         protected abstract void StartCatchUpSubscription(long? startPosition);
@@ -144,7 +150,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             if (!OnCompletedFired)
             {
                 OnCompletedFired = true;
-                _subject.OnCompleted();
+                _catchUpCompleted();
             }
         }
         
