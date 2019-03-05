@@ -8,7 +8,6 @@ namespace WebJobs.Extensions.EventStore
     public interface IEventStoreSubscription : IObservable<StreamEvent>
     {
         Task StartAsync(CancellationToken token, int batchSize = 200);
-        void RegisterCatchUpCompletedHandler(Action catchUpCompleted);
         void Stop();
     }
 }

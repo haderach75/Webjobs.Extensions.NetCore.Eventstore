@@ -43,7 +43,6 @@ namespace WebJobs.Extensions.EventStore.Impl
             _executor = executor;
             _eventProcessor = eventProcessor;
             _eventStoreSubscription = eventStoreSubscription;
-            _eventStoreSubscription.RegisterCatchUpCompletedHandler(OnCompleted);
             _eventFilter = eventFilter;
             _observer = observer;
         }
@@ -52,7 +51,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         {
             _cancellationToken = cancellationToken;
             _observable = CreateObservable()
-                .SubscribeAsync(ProcessEventAsync, OnError);
+                .SubscribeAsync(ProcessEventAsync, OnError, OnCompleted);
             
             _logger.LogInformation("Observable subscription started.");
 
