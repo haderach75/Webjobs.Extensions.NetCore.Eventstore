@@ -17,7 +17,7 @@ namespace WebJobs.Extensions.EventStore.Sample
         }
 
         [Disable(WebJobDisabledSetting)]
-        public async Task ProcessEvents([EventTrigger(BatchSize = 1024, TimeOutInMilliSeconds = 100, TriggerName = "Custom trigger name")] IEnumerable<StreamEvent> events)
+        public async Task ProcessEvents([EventTrigger(BatchSize = 10, TimeOutInMilliSeconds = 10, TriggerName = "Custom trigger name")] IEnumerable<StreamEvent> events)
         {
             foreach (var resolvedEvent in events)
             {
@@ -25,9 +25,10 @@ namespace WebJobs.Extensions.EventStore.Sample
             }
         }
 
-        public void LiveProcessingStarted([LiveProcessingStarted] SubscriptionContext context)
+        public async Task LiveProcessingStarted([LiveProcessingStarted] SubscriptionContext context)
         {
             Console.WriteLine($"Live processing reached for trigger: {context.EventTriggerName}");
+            await Task.Delay(5000);
         }
     }
 }

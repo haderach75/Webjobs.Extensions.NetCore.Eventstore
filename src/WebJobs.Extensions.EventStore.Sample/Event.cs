@@ -6,13 +6,16 @@ namespace WebJobs.Extensions.EventStore.Sample
     {
         public Guid EventId { get; }
         public string Name { get; }
-        public DateTime Occured { get; }
+        public DateTime Occurred { get; }
+        
+        public long ItemNumber { get; }
 
-        public Event(Guid eventId, string name, DateTime occured)
+        public Event(Guid eventId, string name, DateTime occurred, long itemNumber)
         {
             EventId = eventId;
             Name = name;
-            Occured = occured;
+            Occurred = occurred;
+            ItemNumber = itemNumber;
         }    
     }
 }

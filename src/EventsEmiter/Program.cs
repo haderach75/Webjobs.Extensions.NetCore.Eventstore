@@ -19,20 +19,17 @@ namespace EventsEmitter
             Console.WriteLine("Press Enter to start emiting some test events.");
             Console.ReadLine();
 
-            var s1 = Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(3))
-                .Subscribe(x => EmitEvent(connection, "customer-stream", x));
-            var s2 = Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(5))
-                .Subscribe(x => EmitEvent(connection, "order-stream", x));
+            var s1 = Observable.Timer(TimeSpan.Zero, TimeSpan.FromMilliseconds(10))
+                .Subscribe(x => EmitEvent(connection, "stream", x));
 
             Console.ReadLine();
             s1.Dispose();
-            s2.Dispose();
             connection.Close();
         }
 
         static void EmitEvent(IEventStoreConnection connection, string stream, long number)
         {
-            Console.WriteLine("Sending to " + stream);
+            Console.WriteLine($"Sending event number {number} to stream {stream} " + stream);
             connection.AppendToStreamAsync(stream, ExpectedVersion.Any, CreateEvent(number, stream));
         }
 
@@ -41,7 +38,7 @@ namespace EventsEmitter
             return new[]
             {
                 new EventData(Guid.NewGuid(), typeof(Event).AssemblyQualifiedName, true,
-                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Event(Guid.NewGuid(), stream + "-" + number , DateTime.Now))), null)
+                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Event(Guid.NewGuid(), stream, DateTime.Now, number))), null)
             };
         }
 

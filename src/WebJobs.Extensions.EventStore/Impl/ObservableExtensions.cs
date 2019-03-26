@@ -9,7 +9,7 @@ namespace WebJobs.Extensions.EventStore.Impl
     {
         public static IDisposable SubscribeAsync<T>(this IObservable<T> source, Func<T, Task> onNext)
         {
-            return source.Select(e => Observable.Defer(() => onNext(e).ToObservable())).Concat()
+            return source.Select(e => Observable.FromAsync(async () => await onNext(e).ToObservable())).Concat()
                 .Subscribe(
                     e => { });
         }
@@ -20,15 +20,6 @@ namespace WebJobs.Extensions.EventStore.Impl
                 .Subscribe(
                     e => { },
                     onError);
-        }
-        
-        public static IDisposable SubscribeAsync<T>(this IObservable<T> source, Func<T, Task> onNext, Action<Exception> onError, Action onCompleted)
-        {
-            return source.Select(e => Observable.Defer(() => onNext(e).ToObservable())).Concat()
-                .Subscribe(
-                    e => { },
-                    onError,
-                    onCompleted);
         }
     }
 }

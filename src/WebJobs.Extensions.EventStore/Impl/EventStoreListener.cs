@@ -75,10 +75,18 @@ namespace WebJobs.Extensions.EventStore.Impl
                 .Where(buffer => buffer.Any());
         }
         
+        private IDisposable RestartSubscription()
+        {
+            _logger.LogInformation("Restarting observable subscription.");
+            _observable = CreateObservable().Catch(CreateObservable()).SubscribeAsync(ProcessEventAsync);
+            return _observable;
+        }
+        
         private void OnCompleted()
         {
             Task.Delay(_timeOutInMilliSeconds * 2).Wait(_cancellationToken);
             _observer.OnNext(new SubscriptionContext(_triggerName));
+            _observable = RestartSubscription();
             _logger.LogInformation("Catchup complete.");
         }
 

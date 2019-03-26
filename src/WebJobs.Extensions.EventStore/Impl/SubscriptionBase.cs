@@ -123,7 +123,7 @@ namespace WebJobs.Extensions.EventStore.Impl
                 if(!sw.IsRunning)
                     sw.Start();
                 _subject.OnNext(new StreamEvent<ResolvedEvent>(resolvedEvent));
-                if (_updateCounter++ % 10000 == 0) Logger.LogDebug($"{DateTime.Now:T}: Event recieved #{_updateCounter} elasped:{sw.ElapsedMilliseconds}, avarage per 10000: {sw.ElapsedMilliseconds/ ((_updateCounter / 10000) == 0 ? 1 : (_updateCounter / 10000))}ms");
+                if (_updateCounter++ % 10000 == 0) Logger.LogDebug($"{DateTime.Now:T}: Event received #{_updateCounter} elapsed:{sw.ElapsedMilliseconds}, average per 10000: {sw.ElapsedMilliseconds/ ((_updateCounter / 10000) == 0 ? 1 : (_updateCounter / 10000))}ms");
                 var pos = GetLong(resolvedEvent.OriginalPosition);
                 if (pos != null)
                 {
@@ -132,7 +132,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             }
             catch (Exception e)
             {
-                Logger.LogError($"Exception occured in subsciption: {e.Message}");
+                Logger.LogError($"Exception occurred in subscription: {e.Message}");
                 _subject.OnError(e);
             }
             return Task.CompletedTask;
