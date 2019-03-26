@@ -9,6 +9,7 @@
     <PackageProjectUrl>https://github.com/haderach75/Webjobs.Extensions.NetCore.Eventstore</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/haderach75/Webjobs.Extensions.NetCore.Eventstore/blob/master/LICENSE</PackageLicenseUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageVersion>1.0.16</PackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EventStore.ClientAPI.NetCore" Version="4.1.0.23" />

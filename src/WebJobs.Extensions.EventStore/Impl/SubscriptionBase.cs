@@ -26,6 +26,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         protected bool OnCompletedFired;
         protected bool IsStarted;
         protected readonly ILogger Logger;
+        private Action _catchUpCompleted;
         
         protected SubscriptionBase(IEventStoreConnectionFactory eventStoreConnectionFactory,
             EventStoreOptions options,
@@ -55,6 +56,11 @@ namespace WebJobs.Extensions.EventStore.Impl
                 await Connection.ConnectAsync();
                 StartCatchUpSubscription(_lastCheckpoint);
             }
+        }
+        
+        public void RegisterCatchUpCompletedHandler(Action catchUpCompleted)
+        {
+            _catchUpCompleted = catchUpCompleted;
         }
 
         protected abstract void StartCatchUpSubscription(long? startPosition);
@@ -117,7 +123,7 @@ namespace WebJobs.Extensions.EventStore.Impl
                 if(!sw.IsRunning)
                     sw.Start();
                 _subject.OnNext(new StreamEvent<ResolvedEvent>(resolvedEvent));
-                if (_updateCounter++ % 10000 == 0) Logger.LogDebug($"{DateTime.Now:T}: Event recieved #{_updateCounter} elasped:{sw.ElapsedMilliseconds}, avarage per 10000: {sw.ElapsedMilliseconds/ ((_updateCounter / 10000) == 0 ? 1 : (_updateCounter / 10000))}ms");
+                if (_updateCounter++ % 10000 == 0) Logger.LogDebug($"{DateTime.Now:T}: Event received #{_updateCounter} elapsed:{sw.ElapsedMilliseconds}, average per 10000: {sw.ElapsedMilliseconds/ ((_updateCounter / 10000) == 0 ? 1 : (_updateCounter / 10000))}ms");
                 var pos = GetLong(resolvedEvent.OriginalPosition);
                 if (pos != null)
                 {
@@ -126,7 +132,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             }
             catch (Exception e)
             {
-                Logger.LogError($"Exception occured in subsciption: {e.Message}");
+                Logger.LogError($"Exception occurred in subscription: {e.Message}");
                 _subject.OnError(e);
             }
             return Task.CompletedTask;
@@ -144,7 +150,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             if (!OnCompletedFired)
             {
                 OnCompletedFired = true;
-                _subject.OnCompleted();
+                _catchUpCompleted();
             }
         }
         

@@ -43,6 +43,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             _executor = executor;
             _eventProcessor = eventProcessor;
             _eventStoreSubscription = eventStoreSubscription;
+            _eventStoreSubscription.RegisterCatchUpCompletedHandler(OnCompleted);
             _eventFilter = eventFilter;
             _observer = observer;
         }
@@ -51,7 +52,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         {
             _cancellationToken = cancellationToken;
             _observable = CreateObservable()
-                .SubscribeAsync(ProcessEventAsync, OnError, OnCompleted);
+                .SubscribeAsync(ProcessEventAsync, OnError);
             
             _logger.LogInformation("Observable subscription started.");
 
@@ -74,10 +75,18 @@ namespace WebJobs.Extensions.EventStore.Impl
                 .Where(buffer => buffer.Any());
         }
         
+        private IDisposable RestartSubscription()
+        {
+            _logger.LogInformation("Restarting observable subscription.");
+            _observable = CreateObservable().Catch(CreateObservable()).SubscribeAsync(ProcessEventAsync);
+            return _observable;
+        }
+        
         private void OnCompleted()
         {
             Task.Delay(_timeOutInMilliSeconds * 2).Wait(_cancellationToken);
             _observer.OnNext(new SubscriptionContext(_triggerName));
+            _observable = RestartSubscription();
             _logger.LogInformation("Catchup complete.");
         }
 

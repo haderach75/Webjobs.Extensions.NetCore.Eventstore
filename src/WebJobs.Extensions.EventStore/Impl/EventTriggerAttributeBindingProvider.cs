@@ -190,7 +190,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         {
             public override string GetTriggerReason(IDictionary<string, string> arguments)
             {
-                return string.Format("Event trigger fired at {0}", DateTime.Now.ToString("o"));
+                return $"Event trigger fired at {DateTime.Now.ToString("o")}";
             }
         }
         
