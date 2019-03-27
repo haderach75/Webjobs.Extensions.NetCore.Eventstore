@@ -144,7 +144,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             if (!OnCompletedFired)
             {
                 OnCompletedFired = true;
-                _catchUpCompleted();
+                _subject.OnCompleted();
             }
         }
         

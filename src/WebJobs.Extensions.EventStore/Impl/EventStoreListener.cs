@@ -43,7 +43,6 @@ namespace WebJobs.Extensions.EventStore.Impl
             _executor = executor;
             _eventProcessor = eventProcessor;
             _eventStoreSubscription = eventStoreSubscription;
-            _eventStoreSubscription.RegisterCatchUpCompletedHandler(OnCompleted);
             _eventFilter = eventFilter;
             _observer = observer;
         }
