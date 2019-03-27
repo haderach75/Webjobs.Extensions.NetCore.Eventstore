@@ -39,7 +39,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             IEventFilter eventFilter)
         {
             _eventStoreOptions = eventStoreOptions ?? throw new ArgumentNullException(nameof(eventStoreOptions));
-            _messagePropagator = messagePropagator;
+            _messagePropagator = messagePropagator ?? throw new ArgumentNullException(nameof(messagePropagator));
             _eventProcessor = eventProcessor ?? throw new ArgumentNullException(nameof(eventProcessor));
             _subscriptionProvider = subscriptionProvider ?? throw new ArgumentNullException(nameof(subscriptionProvider));
             _observer = observer ?? throw new ArgumentNullException(nameof(observer));
