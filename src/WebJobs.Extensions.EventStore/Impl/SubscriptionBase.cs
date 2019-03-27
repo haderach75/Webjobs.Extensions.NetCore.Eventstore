@@ -26,8 +26,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         protected bool OnCompletedFired;
         protected bool IsStarted;
         protected readonly ILogger Logger;
-        private Action _catchUpCompleted;
-        
+       
         protected SubscriptionBase(IEventStoreConnectionFactory eventStoreConnectionFactory,
             EventStoreOptions options,
             ILogger logger)
@@ -58,11 +57,6 @@ namespace WebJobs.Extensions.EventStore.Impl
             }
         }
         
-        public void RegisterCatchUpCompletedHandler(Action catchUpCompleted)
-        {
-            _catchUpCompleted = catchUpCompleted;
-        }
-
         protected abstract void StartCatchUpSubscription(long? startPosition);
         
         public virtual void Stop()
@@ -150,7 +144,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             if (!OnCompletedFired)
             {
                 OnCompletedFired = true;
-                _catchUpCompleted();
+                _subject.OnCompleted();
             }
         }
         
