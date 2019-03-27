@@ -7,4 +7,12 @@ namespace WebJobs.Extensions.EventStore
     {
         IObservable<StreamEvent> Filter(IObservable<StreamEvent> eventStreamObservable);
     }
+    
+    public static class EventFilterExtensions
+    {
+        public static IObservable<StreamEvent> ApplyFilter(this IObservable<StreamEvent> eventStreamObservable, IEventFilter eventFilter)
+        {
+            return eventFilter != null ? eventFilter.Filter(eventStreamObservable) : eventStreamObservable;
+        }
+    }
 }

@@ -15,5 +15,6 @@
     <PackageReference Include="EventStore.ClientAPI.NetCore" Version="4.1.0.23" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="3.0.0" />
     <PackageReference Include="System.Reactive" Version="4.1.0" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.9.0" />
   </ItemGroup>
 </Project>

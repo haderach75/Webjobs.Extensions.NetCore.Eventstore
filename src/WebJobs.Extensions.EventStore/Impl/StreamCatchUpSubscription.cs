@@ -9,9 +9,10 @@ namespace WebJobs.Extensions.EventStore.Impl
     {
         private readonly string _streamName;
         public StreamCatchUpSubscription(IEventStoreConnectionFactory connection,
+            IMessagePropagator messagePropagator,
             string streamName,
             EventStoreOptions options,
-            ILogger logger) : base(connection, options, logger)
+            ILogger logger) : base(connection, messagePropagator, options, logger)
         {
             _streamName = streamName;
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -24,6 +25,7 @@ namespace WebJobs.Extensions.EventStore
             builder.Services.TryAddSingleton<ISubscriptionProvider, SubscriptionProvider>();
             builder.Services.TryAddSingleton<INameResolver, NullNameResolver>();
             builder.Services.TryAddSingleton<EventProcessor>();
+            builder.Services.TryAddSingleton<MessagePropagator>();
 
             return builder;
         }

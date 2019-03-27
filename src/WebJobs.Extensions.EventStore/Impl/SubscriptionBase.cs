@@ -15,6 +15,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         protected IEventStoreConnection Connection;
         protected readonly UserCredentials UserCredentials;
         private readonly IEventStoreConnectionFactory _eventStoreConnectionFactory;
+        private readonly IMessagePropagator _messagePropagator;
         private readonly EventStoreOptions _options;
         private readonly string _connectionString;
         private long? _lastCheckpoint;
@@ -22,23 +23,23 @@ namespace WebJobs.Extensions.EventStore.Impl
         protected readonly int MaxLiveQueueMessage;
         private CancellationToken _cancellationToken;
         
-        private Subject<StreamEvent> _subject;
         protected bool OnCompletedFired;
         protected bool IsStarted;
         protected readonly ILogger Logger;
        
         protected SubscriptionBase(IEventStoreConnectionFactory eventStoreConnectionFactory,
+            IMessagePropagator messagePropagator,
             EventStoreOptions options,
             ILogger logger)
         {
             _eventStoreConnectionFactory = eventStoreConnectionFactory;
+            _messagePropagator = messagePropagator;
             _options = options;
             _connectionString = options.ConnectionString;
             UserCredentials = new UserCredentials(options.Username, options.Password);;
             Logger = logger;
             MaxLiveQueueMessage = options.MaxLiveQueueSize;
-
-            _subject = new Subject<StreamEvent>();
+            
             Connection = _eventStoreConnectionFactory.Create(_connectionString, Logger);
         }
 
@@ -75,15 +76,6 @@ namespace WebJobs.Extensions.EventStore.Impl
             }
             IsStarted = false;
         }
-
-        public virtual IDisposable Subscribe(IObserver<StreamEvent> observer)
-        {
-            if (OnCompletedFired)
-            {
-                _subject = new Subject<StreamEvent>();
-            }
-            return _subject.Subscribe(observer);
-        }
         
         public void RestartSubscription() {
             if (Subscription == null) return;
@@ -116,7 +108,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             {
                 if(!sw.IsRunning)
                     sw.Start();
-                _subject.OnNext(new StreamEvent<ResolvedEvent>(resolvedEvent));
+                _messagePropagator.OnEventReceived(new StreamEvent<ResolvedEvent>(resolvedEvent));
                 if (_updateCounter++ % 10000 == 0) Logger.LogDebug($"{DateTime.Now:T}: Event received #{_updateCounter} elapsed:{sw.ElapsedMilliseconds}, average per 10000: {sw.ElapsedMilliseconds/ ((_updateCounter / 10000) == 0 ? 1 : (_updateCounter / 10000))}ms");
                 var pos = GetLong(resolvedEvent.OriginalPosition);
                 if (pos != null)
@@ -127,7 +119,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             catch (Exception e)
             {
                 Logger.LogError($"Exception occurred in subscription: {e.Message}");
-                _subject.OnError(e);
+                _messagePropagator.OnError(e);
             }
             return Task.CompletedTask;
         }
@@ -144,7 +136,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             if (!OnCompletedFired)
             {
                 OnCompletedFired = true;
-                _subject.OnCompleted();
+                _messagePropagator.OnCatchupCompleted();
             }
         }
         
@@ -153,7 +145,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             if (reason == SubscriptionDropReason.ConnectionClosed || // Will resubscribe automatically
                 reason == SubscriptionDropReason.ProcessingQueueOverflow ||
                 reason == SubscriptionDropReason.UserInitiated) {
-                _subject.OnError(ex ?? new Exception($"Subscription dropped because {reason}: {msg}"));
+                _messagePropagator.OnError(ex ?? new Exception($"Subscription dropped because {reason}: {msg}"));
                 Logger.LogInformation("Subscription dropped because {Reason}: {Message}", reason, msg);
             }
             else

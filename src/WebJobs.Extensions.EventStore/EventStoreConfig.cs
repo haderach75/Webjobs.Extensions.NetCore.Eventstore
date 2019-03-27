@@ -17,6 +17,7 @@ namespace WebJobs.Extensions.EventStore
         private readonly ILoggerFactory _loggerFactory;
         private readonly ISubscriptionProvider _subscriptionProvider;
         private readonly EventProcessor _eventProcessor;
+        private readonly MessagePropagator _messagePropagator;
         private readonly IEventFilter _eventFilter;
         private readonly IOptions<EventStoreOptions> _options;
         private readonly INameResolver _nameResolver;
@@ -24,6 +25,7 @@ namespace WebJobs.Extensions.EventStore
         public EventStoreConfigProvider(ILoggerFactory loggerFactory, 
                                         ISubscriptionProvider subscriptionProvider,
                                         EventProcessor eventProcessor,
+                                        MessagePropagator messagePropagator,
                                         IEventFilter eventFilter,
                                         INameResolver nameResolver,
                                         IOptions<EventStoreOptions> options)
@@ -31,6 +33,7 @@ namespace WebJobs.Extensions.EventStore
             _loggerFactory = loggerFactory;
             _subscriptionProvider = subscriptionProvider;
             _eventProcessor = eventProcessor;
+            _messagePropagator = messagePropagator;
             _eventFilter = eventFilter;
             _options = options;
             _nameResolver = nameResolver;
@@ -51,6 +54,7 @@ namespace WebJobs.Extensions.EventStore
             
             var triggerBindingProvider = new EventTriggerAttributeBindingProvider(_options,
                                                                                   _eventProcessor,
+                                                                                  _messagePropagator,
                                                                                   subject,
                                                                                   _nameResolver,
                                                                                   _loggerFactory,
