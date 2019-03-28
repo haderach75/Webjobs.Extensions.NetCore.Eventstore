@@ -51,7 +51,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         {
             _cancellationToken = cancellationToken;
             _observable = CreateObservable()
-                .SubscribeAsync(ProcessEventAsync, OnError);
+                .SubscribeAsync(ProcessEventAsync, OnError, OnCompleted);
             
             _logger.LogInformation("Observable subscription started.");
 
