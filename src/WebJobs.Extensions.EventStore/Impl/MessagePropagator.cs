@@ -1,68 +1,103 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Microsoft.Extensions.Logging;
 
 namespace WebJobs.Extensions.EventStore.Impl
 {
     public class MessagePropagator : IMessagePropagator
     {
-        private Func<IEnumerable<StreamEvent>, Task> _onNext;
+        private readonly ILogger<MessagePropagator> _logger;
         private Action _onCompleted;
         private Action<Exception> _onError;
-        private IPropagatorBlock<StreamEvent, IEnumerable<StreamEvent>> _bufferBlock;
-        
-        public void Subscribe(TimeSpan timeout, 
-            int buffer, 
-            Func<IEnumerable<StreamEvent>, Task> onNext, 
-            Action onCompleted = null, 
+        private IPropagatorBlock<StreamEvent, IList<StreamEvent>> _bufferBlock;
+        private SemaphoreSlim _semaphore;
+        private ActionBlock<IList<StreamEvent>> _outputBlock;
+
+        public MessagePropagator(ILogger<MessagePropagator> logger)
+        {
+            _logger = logger;
+        }
+
+        public void Subscribe(TimeSpan timeout,
+            int capacity,
+            Func<IEnumerable<StreamEvent>, Task> onNext,
+            Action onCompleted = null,
             Action<Exception> onError = null,
             IEventFilter eventFilter = null)
         {
-            _onNext = onNext;
             _onCompleted = onCompleted;
             _onError = onError;
-            
-            _bufferBlock = CreateBuffer(timeout, buffer, eventFilter);
-            
-            var options = new DataflowLinkOptions { PropagateCompletion = true };
-            var outputBlock = new ActionBlock<IEnumerable<StreamEvent>>(_onNext);
-            _bufferBlock.LinkTo(outputBlock, options);
-        }
-        
-        private static IPropagatorBlock<StreamEvent,IList<StreamEvent>> CreateBuffer(TimeSpan timeSpan,int count, IEventFilter eventFilter)
-        {
-            var inBlock = new BufferBlock<StreamEvent>();
-            var outBlock = new BufferBlock<IList<StreamEvent>>();
 
-            var outObserver=outBlock.AsObserver();
+            _semaphore = new SemaphoreSlim(capacity, capacity);
+            
+            var options = new DataflowLinkOptions {PropagateCompletion = true};
+            _bufferBlock = CreateBuffer(timeout, capacity, eventFilter);
+            
+            _outputBlock = new ActionBlock<IList<StreamEvent>>(async m =>
+                {
+                    try
+                    {
+                        await onNext(m);
+                    }
+                    finally
+                    {
+                        _semaphore.Release(m.Count);
+                    }
+                }
+            );
+            _bufferBlock.LinkTo(_outputBlock, options);
+        }
+
+        private IPropagatorBlock<StreamEvent,IList<StreamEvent>> CreateBuffer(TimeSpan timeSpan, int capacity, IEventFilter eventFilter)
+        {
+            var options = new DataflowLinkOptions {PropagateCompletion = true};
+            var inBlock = new BufferBlock<StreamEvent>();
+            
+            var batchBlock = new BatchBlock<StreamEvent>(capacity, new GroupingDataflowBlockOptions { Greedy = true });
+            
+            var timer = new Timer(_ => batchBlock.TriggerBatch());
+            
+            Func<StreamEvent, StreamEvent> resetTimerIdentity = value =>
+            {
+                timer.Change(timeSpan, Timeout.InfiniteTimeSpan);
+                return value;
+            };
+            
+            var timingBlock = new TransformBlock<StreamEvent, StreamEvent>(resetTimerIdentity);
+            
+            var outObserver=timingBlock.AsObserver();
             inBlock.AsObservable()
                 .ApplyFilter(eventFilter)
-                .Buffer(timeSpan, count)
-                .Where(b => b.Count > 0)
-                .ObserveOn(TaskPoolScheduler.Default)
                 .Subscribe(outObserver);
-
-            return DataflowBlock.Encapsulate(inBlock, outBlock);
+            
+            //inBlock.LinkTo(timingBlock, options);
+            timingBlock.LinkTo(batchBlock, options);
+            
+            return DataflowBlock.Encapsulate(inBlock, batchBlock);
         }
         
         public void OnError(Exception exception)
         {
             _onError?.Invoke(exception);
         }
-
+        
         public async Task OnEventReceived(StreamEvent streamEvent)
         {
+            _semaphore.Wait();
             await _bufferBlock.SendAsync(streamEvent);
         }
 
         public void OnCatchupCompleted()
         {
             _bufferBlock.Complete();
-            _bufferBlock.Completion.Wait();
-            _onCompleted?.Invoke();
+            _outputBlock.Completion.Wait();
+           _onCompleted?.Invoke();
         }
     }
 }

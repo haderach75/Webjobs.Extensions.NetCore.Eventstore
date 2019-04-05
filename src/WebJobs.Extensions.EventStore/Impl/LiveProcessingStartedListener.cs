@@ -39,7 +39,9 @@ namespace WebJobs.Extensions.EventStore.Impl
             {
                 TriggerValue = context
             };
+            _logger.LogDebug("Calling LiveProcessingStartedListener executor");
             _executor.TryExecuteAsync(input, _cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+            _logger.LogDebug("LiveProcessingStartedListener executor called");
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

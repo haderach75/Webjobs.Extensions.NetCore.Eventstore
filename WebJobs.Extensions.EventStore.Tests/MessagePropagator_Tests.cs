@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using WebJobs.Extensions.EventStore.Impl;
 
@@ -22,7 +23,7 @@ namespace WebJobs.Extensions.EventStore.Tests
             var receivedItems = new List<StreamEvent>();
             
             //Build the pipeline
-            var sut = new MessagePropagator();
+            var sut = new MessagePropagator(new NullLogger<MessagePropagator>());
             
             sut.Subscribe(TimeSpan.FromMilliseconds(1), 10, (e) =>
                 {
