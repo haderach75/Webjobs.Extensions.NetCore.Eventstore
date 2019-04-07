@@ -13,7 +13,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         private readonly ITriggeredFunctionExecutor _executor;
         private readonly IObservable<SubscriptionContext> _observable;
         private readonly ILogger _logger;
-        private CancellationToken _cancellationToken = CancellationToken.None;
+        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private IDisposable _observer;
         
         public LiveProcessingStartedListener(ITriggeredFunctionExecutor executor,
@@ -27,7 +27,6 @@ namespace WebJobs.Extensions.EventStore.Impl
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
             _observer = _observable.Subscribe(OnNext);
             
             return Task.FromResult(true);
@@ -40,7 +39,7 @@ namespace WebJobs.Extensions.EventStore.Impl
                 TriggerValue = context
             };
             _logger.LogDebug("Calling LiveProcessingStartedListener executor");
-            _executor.TryExecuteAsync(input, _cancellationToken).ConfigureAwait(false).GetAwaiter().GetResult();
+            _executor.TryExecuteAsync(input, _cancellationTokenSource.Token).ConfigureAwait(false).GetAwaiter().GetResult();
             _logger.LogDebug("LiveProcessingStartedListener executor called");
         }
 
@@ -56,6 +55,7 @@ namespace WebJobs.Extensions.EventStore.Impl
         public void Cancel()
         {
             _logger.LogInformation("Cancelling LiveProcessingStartedListener listener.");
+            _cancellationTokenSource.Cancel();
             _observer?.Dispose();
         }
 

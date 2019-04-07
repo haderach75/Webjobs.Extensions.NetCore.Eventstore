@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using WebJobs.Extensions.EventStore.Impl;
@@ -11,11 +12,6 @@ namespace WebJobs.Extensions.EventStore.Tests
 {
     public class MessagePropagator_Tests
     {
-        [SetUp]
-        public void Setup()
-        {
-        }
-
         [Test]
         public async Task MessagePropagator_OnCompleted_All_Is_Transmitted()
         {

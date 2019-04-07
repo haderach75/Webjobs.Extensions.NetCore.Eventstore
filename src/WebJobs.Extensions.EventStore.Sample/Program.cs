@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -34,7 +35,14 @@ namespace WebJobs.Extensions.EventStore.Sample
             var host = builder.Build();
             using (host)
             {
-                await host.RunAsync();
+                try
+                {
+                    await host.RunAsync();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
             }
         }
     }

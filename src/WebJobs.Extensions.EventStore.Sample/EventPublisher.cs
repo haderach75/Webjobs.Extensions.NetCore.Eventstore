@@ -23,7 +23,7 @@ namespace WebJobs.Extensions.EventStore.Sample
             if (IsProcessable(evt))
             {
                 var json = Encoding.UTF8.GetString(evt.OriginalEvent.Data);
-                _logger.LogDebug($"Message as JSON: {json}");
+                _logger.LogInformation($"Message as JSON: {json}");
             }
             return Task.CompletedTask;
         }

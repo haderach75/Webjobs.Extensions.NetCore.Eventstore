@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reactive.Concurrency;
-using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -38,19 +35,17 @@ namespace WebJobs.Extensions.EventStore.Impl
             
             var options = new DataflowLinkOptions {PropagateCompletion = true};
             _bufferBlock = CreateBuffer(timeout, capacity, eventFilter);
-            
             _outputBlock = new ActionBlock<IList<StreamEvent>>(async m =>
+            {
+                try
                 {
-                    try
-                    {
-                        await onNext(m);
-                    }
-                    finally
-                    {
-                        _semaphore.Release(m.Count);
-                    }
+                    await onNext(m);
                 }
-            );
+                finally
+                {
+                    _semaphore.Release(m.Count);
+                }
+            });
             _bufferBlock.LinkTo(_outputBlock, options);
         }
 
@@ -62,21 +57,17 @@ namespace WebJobs.Extensions.EventStore.Impl
             var batchBlock = new BatchBlock<StreamEvent>(capacity, new GroupingDataflowBlockOptions { Greedy = true });
             
             var timer = new Timer(_ => batchBlock.TriggerBatch());
-            
-            Func<StreamEvent, StreamEvent> resetTimerIdentity = value =>
+            var timingBlock = new TransformBlock<StreamEvent, StreamEvent>(streamEvent =>
             {
                 timer.Change(timeSpan, Timeout.InfiniteTimeSpan);
-                return value;
-            };
-            
-            var timingBlock = new TransformBlock<StreamEvent, StreamEvent>(resetTimerIdentity);
+                return streamEvent;
+            });
             
             var outObserver=timingBlock.AsObserver();
             inBlock.AsObservable()
                 .ApplyFilter(eventFilter)
                 .Subscribe(outObserver);
             
-            //inBlock.LinkTo(timingBlock, options);
             timingBlock.LinkTo(batchBlock, options);
             
             return DataflowBlock.Encapsulate(inBlock, batchBlock);
@@ -98,6 +89,12 @@ namespace WebJobs.Extensions.EventStore.Impl
             _bufferBlock.Complete();
             _outputBlock.Completion.Wait();
            _onCompleted?.Invoke();
+        }
+
+        public async Task StopAsync()
+        {
+            _bufferBlock.Complete();
+            await _outputBlock.Completion;
         }
     }
 }
