@@ -15,11 +15,10 @@ namespace WebJobs.Extensions.EventStore.Impl
     {
         private readonly ITriggeredFunctionExecutor _executor;
         private readonly EventProcessor _eventProcessor;
+        private MessagePropagator _messagePropagator;
         private IEventStoreSubscription _eventStoreSubscription;
-        private readonly IEventFilter _eventFilter;
         private readonly IObserver<SubscriptionContext> _observer;
-        private CancellationToken _cancellationToken = CancellationToken.None;
-        private IDisposable _observable;
+        private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly ILogger _logger;
 
         private readonly int _timeOutInMilliSeconds;
@@ -27,9 +26,9 @@ namespace WebJobs.Extensions.EventStore.Impl
         private readonly int _batchSize;
         
         public EventStoreListener(ITriggeredFunctionExecutor executor,
-                                  EventProcessor eventProcessor, 
+                                  EventProcessor eventProcessor,
+                                  MessagePropagator messagePropagator,
                                   IEventStoreSubscription eventStoreSubscription,
-                                  IEventFilter eventFilter,
                                   IObserver<SubscriptionContext> observer,
                                   int batchSize,
                                   int timeOutInMilliSeconds,
@@ -42,18 +41,19 @@ namespace WebJobs.Extensions.EventStore.Impl
             _logger = logger;
             _executor = executor;
             _eventProcessor = eventProcessor;
+            _messagePropagator = messagePropagator;
             _eventStoreSubscription = eventStoreSubscription;
-            _eventFilter = eventFilter;
             _observer = observer;
         }
         
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
-            _observable = CreateObservable()
-                .SubscribeAsync(ProcessEventAsync, OnError, OnCompleted);
+            _messagePropagator.Subscribe(TimeSpan.FromMilliseconds(_timeOutInMilliSeconds),
+                _batchSize,ProcessEventAsync,
+                OnCompleted,
+                OnError);
             
-            _logger.LogInformation("Observable subscription started.");
+            _logger.LogInformation("Message propagator started.");
 
             return _eventStoreSubscription.StartAsync(cancellationToken, _batchSize);
         }
@@ -62,59 +62,47 @@ namespace WebJobs.Extensions.EventStore.Impl
         {
             _eventStoreSubscription.Stop();
         }
-
-        private IObservable<IEnumerable<StreamEvent>> CreateObservable()
-        {
-            var observable = (IObservable<StreamEvent>) _eventStoreSubscription;
-            if (_eventFilter != null)
-                observable = _eventFilter.Filter(observable);
-            
-            return observable
-                .Buffer(TimeSpan.FromMilliseconds(_timeOutInMilliSeconds), _batchSize)
-                .Where(buffer => buffer.Any());
-        }
         
-        private IDisposable RestartSubscription()
+        private void RestartSubscription()
         {
-            _logger.LogInformation("Restarting observable subscription.");
-            _observable = CreateObservable().Catch(CreateObservable()).SubscribeAsync(ProcessEventAsync);
-            return _observable;
+            _messagePropagator.Subscribe(TimeSpan.FromMilliseconds(_timeOutInMilliSeconds),
+                _batchSize,ProcessEventAsync,
+                OnCompleted,
+                OnError);
         }
         
         private void OnCompleted()
         {
-            Task.Delay(_timeOutInMilliSeconds * 2).Wait(_cancellationToken);
+            Task.Delay(_timeOutInMilliSeconds * 2).Wait(_cancellationTokenSource.Token);
             _observer.OnNext(new SubscriptionContext(_triggerName));
-            _observable = RestartSubscription();
+            RestartSubscription();
             _logger.LogInformation("Catchup complete.");
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Stopping event listener.");
-            _observable.Dispose();
             _eventStoreSubscription.Stop();
+            await _messagePropagator.StopAsync();
             _logger.LogInformation("Event listener stopped.");
-
-            return Task.FromResult(true);
         }
         
         private async Task ProcessEventAsync(IEnumerable<StreamEvent> events)
         {
             var streamEvents = events.ToList();
-            await _eventProcessor.BeginProcessingEventsAsync(streamEvents, _cancellationToken).ConfigureAwait(false);
+            await _eventProcessor.BeginProcessingEventsAsync(streamEvents, _cancellationTokenSource.Token).ConfigureAwait(false);
             var input = new TriggeredFunctionData
             {
                 TriggerValue = new EventTriggerData(streamEvents)
             };
-            var functionResult = await _executor.TryExecuteAsync(input, _cancellationToken).ConfigureAwait(false);
-            await _eventProcessor.CompleteProcessingEventsAsync(streamEvents, functionResult, _cancellationToken);
+            var functionResult = await _executor.TryExecuteAsync(input, _cancellationTokenSource.Token).ConfigureAwait(false);
+            await _eventProcessor.CompleteProcessingEventsAsync(streamEvents, functionResult, _cancellationTokenSource.Token);
         }
         
         public void Cancel()
         {
             _logger.LogInformation("Cancelling event listener.");
-            _eventStoreSubscription?.Stop();
+            _cancellationTokenSource.Cancel();
         }
 
         private bool _isDisposed;

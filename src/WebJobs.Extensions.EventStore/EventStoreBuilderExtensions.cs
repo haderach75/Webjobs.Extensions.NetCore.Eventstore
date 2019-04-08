@@ -1,4 +1,5 @@
 ﻿using System;
+using EventStore.ClientAPI;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -18,12 +19,13 @@ namespace WebJobs.Extensions.EventStore
 
             builder.AddExtension<EventStoreConfigProvider>()
                 .BindOptions<EventStoreOptions>();
-
-            builder.Services.TryAddSingleton<IEventFilter, NullEventFilter>();
+           
             builder.Services.TryAddSingleton<IEventStoreConnectionFactory, EventStoreConnectionFactory>();
             builder.Services.TryAddSingleton<ISubscriptionProvider, SubscriptionProvider>();
             builder.Services.TryAddSingleton<INameResolver, NullNameResolver>();
             builder.Services.TryAddSingleton<EventProcessor>();
+            builder.Services.TryAddSingleton<MessagePropagator>();
+            builder.Services.TryAddSingleton<IMessagePropagator>(provider => provider.GetService<MessagePropagator>());
 
             return builder;
         }

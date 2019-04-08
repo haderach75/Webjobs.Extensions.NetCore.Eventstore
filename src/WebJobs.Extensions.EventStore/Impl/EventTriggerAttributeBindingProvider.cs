@@ -20,8 +20,8 @@ namespace WebJobs.Extensions.EventStore.Impl
     {
         private readonly INameResolver _nameResolver;
         private readonly ISubscriptionProvider _subscriptionProvider;
-        private readonly IEventFilter _eventFilter;
         private readonly IOptions<EventStoreOptions> _eventStoreOptions;
+        private readonly MessagePropagator _messagePropagator;
         private readonly EventProcessor _eventProcessor;
         private readonly IObserver<SubscriptionContext> _observer;
         private readonly ILoggerFactory _loggerFactory;
@@ -30,18 +30,18 @@ namespace WebJobs.Extensions.EventStore.Impl
         public EventTriggerAttributeBindingProvider(
             IOptions<EventStoreOptions> eventStoreOptions,
             EventProcessor eventProcessor,
+            MessagePropagator messagePropagator,
             IObserver<SubscriptionContext> observer,
             INameResolver nameResolver,
             ILoggerFactory loggerFactory, 
-            ISubscriptionProvider subscriptionProvider,
-            IEventFilter eventFilter)
+            ISubscriptionProvider subscriptionProvider)
         {
             _eventStoreOptions = eventStoreOptions ?? throw new ArgumentNullException(nameof(eventStoreOptions));
+            _messagePropagator = messagePropagator ?? throw new ArgumentNullException(nameof(messagePropagator));
             _eventProcessor = eventProcessor ?? throw new ArgumentNullException(nameof(eventProcessor));
             _subscriptionProvider = subscriptionProvider ?? throw new ArgumentNullException(nameof(subscriptionProvider));
             _observer = observer ?? throw new ArgumentNullException(nameof(observer));
             _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
-            _eventFilter = eventFilter ?? throw new ArgumentNullException(nameof(eventFilter));
             _nameResolver = nameResolver ?? throw new ArgumentNullException(nameof(nameResolver));
         }
 
@@ -77,8 +77,8 @@ namespace WebJobs.Extensions.EventStore.Impl
 
             return Task.FromResult<ITriggerBinding>(new EventTriggerBinding(_eventStoreOptions, 
                                                     _eventProcessor,
+                                                    _messagePropagator,
                                                     _subscriptionProvider, 
-                                                    _eventFilter, 
                                                     parameter,
                                                     _attribute,
                                                     _observer,
@@ -94,8 +94,8 @@ namespace WebJobs.Extensions.EventStore.Impl
         {
             private readonly IOptions<EventStoreOptions> _eventStoreOptions;
             private readonly EventProcessor _eventProcessor;
+            private readonly MessagePropagator _messagePropagator;
             private readonly ISubscriptionProvider _subscriptionProvider;
-            private readonly IEventFilter _eventFilter;
             private readonly ParameterInfo _parameter;
             private readonly EventTriggerAttribute _attribute;
             private readonly IObserver<SubscriptionContext> _observer;
@@ -103,8 +103,8 @@ namespace WebJobs.Extensions.EventStore.Impl
 
             public EventTriggerBinding(IOptions<EventStoreOptions> eventStoreOptions,
                 EventProcessor eventProcessor,
+                MessagePropagator messagePropagator,
                 ISubscriptionProvider subscriptionProvider,
-                IEventFilter eventFilter,
                 ParameterInfo parameter,
                 EventTriggerAttribute attribute,
                 IObserver<SubscriptionContext> observer,
@@ -112,8 +112,8 @@ namespace WebJobs.Extensions.EventStore.Impl
             {
                 _eventStoreOptions = eventStoreOptions;
                 _eventProcessor = eventProcessor;
+                _messagePropagator = messagePropagator;
                 _subscriptionProvider = subscriptionProvider;
-                _eventFilter = eventFilter;
                 _parameter = parameter;
                 _attribute = attribute;
                 _observer = observer;
@@ -144,8 +144,8 @@ namespace WebJobs.Extensions.EventStore.Impl
 
                 IListener listener = new EventStoreListener(context.Executor,
                     _eventProcessor,
+                    _messagePropagator,
                     eventStoreSubscription,
-                    _eventFilter,
                     _observer,
                     _attribute.BatchSize * 2,
                     _attribute.TimeOutInMilliSeconds,

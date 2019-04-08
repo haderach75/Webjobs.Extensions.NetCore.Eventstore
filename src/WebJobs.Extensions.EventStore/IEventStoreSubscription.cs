@@ -5,7 +5,7 @@ using WebJobs.Extensions.EventStore.Impl;
 
 namespace WebJobs.Extensions.EventStore
 {
-    public interface IEventStoreSubscription : IObservable<StreamEvent>
+    public interface IEventStoreSubscription
     {
         Task StartAsync(CancellationToken token, int batchSize = 200);
         void Stop();

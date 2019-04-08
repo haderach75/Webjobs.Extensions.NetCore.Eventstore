@@ -14,32 +14,35 @@ namespace WebJobs.Extensions.EventStore.Impl
     {
         protected IEventStoreConnection Connection;
         protected readonly UserCredentials UserCredentials;
-        private readonly IEventStoreConnectionFactory _eventStoreConnectionFactory;
+        protected readonly int MaxLiveQueueMessage;
+        protected readonly Stopwatch CatchupWatch = new Stopwatch();
+        protected bool IsCatchingUp;
+        protected long CatchupEventCount;
+        protected Position LastAllPosition;
+        protected int BatchSize;
+        protected bool OnCompletedFired;
+        private bool _isStarted;
+        protected readonly ILogger Logger;
+        private readonly IEventStoreConnectionFactory _eventStoreConnectionFactoryFactory;
+        private readonly IMessagePropagator _messagePropagator;
         private readonly EventStoreOptions _options;
         private readonly string _connectionString;
         private long? _lastCheckpoint;
-        protected int BatchSize;
-        protected readonly int MaxLiveQueueMessage;
-        private CancellationToken _cancellationToken;
         
-        private Subject<StreamEvent> _subject;
-        protected bool OnCompletedFired;
-        protected bool IsStarted;
-        protected readonly ILogger Logger;
+        private CancellationToken _cancellationToken;
        
-        protected SubscriptionBase(IEventStoreConnectionFactory eventStoreConnectionFactory,
+        protected SubscriptionBase(IEventStoreConnectionFactory eventStoreConnectionFactoryFactory,
+            IMessagePropagator messagePropagator,
             EventStoreOptions options,
             ILogger logger)
         {
-            _eventStoreConnectionFactory = eventStoreConnectionFactory;
+            _eventStoreConnectionFactoryFactory = eventStoreConnectionFactoryFactory;
+            _messagePropagator = messagePropagator;
             _options = options;
             _connectionString = options.ConnectionString;
             UserCredentials = new UserCredentials(options.Username, options.Password);;
             Logger = logger;
             MaxLiveQueueMessage = options.MaxLiveQueueSize;
-
-            _subject = new Subject<StreamEvent>();
-            Connection = _eventStoreConnectionFactory.Create(_connectionString, Logger);
         }
 
         public EventStoreCatchUpSubscription Subscription { get; protected set; }
@@ -50,14 +53,34 @@ namespace WebJobs.Extensions.EventStore.Impl
             _cancellationToken = cancellationToken;
             _lastCheckpoint = await _options.GetLastPositionAsync();
 
-            if (!IsStarted)
+            if (!_isStarted)
             {
+                Connection = _eventStoreConnectionFactoryFactory.Create(_connectionString, Logger);
+                
                 await Connection.ConnectAsync();
                 StartCatchUpSubscription(_lastCheckpoint);
+                _isStarted = true;
             }
         }
         
         protected abstract void StartCatchUpSubscription(long? startPosition);
+        
+        private int _lastPercent = -1;
+        private DateTime _lastTime = DateTime.MinValue;
+        private void ReportRebuildProgress(Position pos) {
+            if (IsCatchingUp && LastAllPosition.CommitPosition > 0) {
+                var percent = (int)(pos.CommitPosition * 100.0 / LastAllPosition.CommitPosition);
+                if (percent > _lastPercent || DateTime.Now >= _lastTime.AddMinutes(5)) {
+                    _lastPercent = percent;
+                    _lastTime = DateTime.Now;
+                    Logger.LogInformation("Rebuild is {RebuildPercentage}% complete, rebuild time {ElapsedTime}", percent, CatchupWatch.Elapsed);
+                }
+            }
+        }
+
+        private void IncrementCatchupCount() {
+            if (IsCatchingUp) CatchupEventCount++;
+        }
         
         public virtual void Stop()
         {
@@ -73,16 +96,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             {
                 Logger.LogWarning("The subscription did not stop within the specified time.");
             }
-            IsStarted = false;
-        }
-
-        public virtual IDisposable Subscribe(IObserver<StreamEvent> observer)
-        {
-            if (OnCompletedFired)
-            {
-                _subject = new Subject<StreamEvent>();
-            }
-            return _subject.Subscribe(observer);
+            _isStarted = false;
         }
         
         public void RestartSubscription() {
@@ -96,38 +110,33 @@ namespace WebJobs.Extensions.EventStore.Impl
             if (Subscription == null) return;
             Subscription.Stop();
             
-            Connection = _eventStoreConnectionFactory.Create(_connectionString, Logger);
+            Connection = _eventStoreConnectionFactoryFactory.Create(_connectionString, Logger);
             Logger.LogInformation("Restarting subscription...");
             StartCatchUpSubscription(_lastCheckpoint);
         }
-
-        private Stopwatch sw = new Stopwatch();
-        private int _updateCounter = 0;
+        
         protected virtual Task EventAppeared(EventStoreCatchUpSubscription sub, ResolvedEvent resolvedEvent)
         {
-            if (_cancellationToken != CancellationToken.None && _cancellationToken.IsCancellationRequested)
-            {
-                Logger.LogInformation("Cancellation requested");
-                Stop();
+            if (_cancellationToken != CancellationToken.None && _cancellationToken.IsCancellationRequested) {
+                Logger.LogInformation("Cancellation requested, stopping subscription...");
+                sub.Stop();
                 return Task.CompletedTask;
             }
-
+            
+            var evt = resolvedEvent.Event;
+            var pos = resolvedEvent.OriginalPosition ?? Position.Start;
+            if (Subscription != sub) return Task.CompletedTask;; // Not the current subscription
             try
             {
-                if(!sw.IsRunning)
-                    sw.Start();
-                _subject.OnNext(new StreamEvent<ResolvedEvent>(resolvedEvent));
-                if (_updateCounter++ % 10000 == 0) Logger.LogDebug($"{DateTime.Now:T}: Event received #{_updateCounter} elapsed:{sw.ElapsedMilliseconds}, average per 10000: {sw.ElapsedMilliseconds/ ((_updateCounter / 10000) == 0 ? 1 : (_updateCounter / 10000))}ms");
-                var pos = GetLong(resolvedEvent.OriginalPosition);
-                if (pos != null)
-                {
-                    _lastCheckpoint = pos;
-                }
+                _messagePropagator.OnEventReceived(new StreamEvent<ResolvedEvent>(resolvedEvent));
+                IncrementCatchupCount();
+                ReportRebuildProgress(pos);
+                _lastCheckpoint = GetLong(pos);
             }
-            catch (Exception e)
-            {
-                Logger.LogError($"Exception occurred in subscription: {e.Message}");
-                _subject.OnError(e);
+            catch (Exception ex) {
+                Logger.LogError(ex, "Error occurred when processing event {EventType} with id {EventId} from the stream {EventStreamId}", evt.EventType, evt.EventId, evt.EventStreamId);
+                _messagePropagator.OnError(ex);
+                throw;
             }
             return Task.CompletedTask;
         }
@@ -136,15 +145,25 @@ namespace WebJobs.Extensions.EventStore.Impl
         {
             return position?.CommitPosition;
         }
-
-        protected virtual void LiveProcessingStarted(EventStoreCatchUpSubscription sub)
-        {
-            sw.Stop();
-            Logger.LogDebug($"Catchup completed in {sw.ElapsedMilliseconds}ms");
+        
+        protected virtual void LiveProcessingStarted(EventStoreCatchUpSubscription obj) {
+            CatchupWatch.Stop();
+            if (IsCatchingUp)
+            {
+                var eventsPerSecond = CatchupWatch.Elapsed.TotalSeconds > 0.0 ? CatchupEventCount / CatchupWatch.Elapsed.TotalSeconds : double.NaN;
+                Logger.LogInformation($"Live processing, catching up took {CatchupWatch.Elapsed}, processing {CatchupEventCount} events ({eventsPerSecond:N2} e/s).");
+            }
+            else {
+                Logger.LogInformation($"Live processing started.");
+            }
+            LastAllPosition = new Position();
+            IsCatchingUp = false;
+            CatchupEventCount = 0;
+            CatchupWatch.Reset();
             if (!OnCompletedFired)
             {
                 OnCompletedFired = true;
-                _subject.OnCompleted();
+                _messagePropagator.OnCatchupCompleted();
             }
         }
         
@@ -153,7 +172,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             if (reason == SubscriptionDropReason.ConnectionClosed || // Will resubscribe automatically
                 reason == SubscriptionDropReason.ProcessingQueueOverflow ||
                 reason == SubscriptionDropReason.UserInitiated) {
-                _subject.OnError(ex ?? new Exception($"Subscription dropped because {reason}: {msg}"));
+                _messagePropagator.OnError(ex ?? new Exception($"Subscription dropped because {reason}: {msg}"));
                 Logger.LogInformation("Subscription dropped because {Reason}: {Message}", reason, msg);
             }
             else

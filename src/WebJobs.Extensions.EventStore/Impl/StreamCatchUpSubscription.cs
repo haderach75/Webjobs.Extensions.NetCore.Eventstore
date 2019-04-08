@@ -8,28 +8,40 @@ namespace WebJobs.Extensions.EventStore.Impl
     public class StreamCatchUpSubscription : SubscriptionBase
     {
         private readonly string _streamName;
-        public StreamCatchUpSubscription(IEventStoreConnectionFactory connection,
+        public StreamCatchUpSubscription(IEventStoreConnectionFactory connectionFactory,
+            IMessagePropagator messagePropagator,
             string streamName,
             EventStoreOptions options,
-            ILogger logger) : base(connection, options, logger)
+            ILogger logger) : base(connectionFactory, messagePropagator, options, logger)
         {
             _streamName = streamName;
         }
         
         protected override void StartCatchUpSubscription(long? startPosition)
         {
-            OnCompletedFired = false;
-            IsStarted = true;
-            var settings = new CatchUpSubscriptionSettings(MaxLiveQueueMessage, BatchSize, true, false);
-            Subscription = Connection.SubscribeToStreamFrom(_streamName,
-                startPosition,
-                settings,
-                EventAppeared,
-                LiveProcessingStarted,
-                SubscriptionDropped,
-                UserCredentials);
-            
-            Logger.LogInformation($"Catch-up subscription started from checkpoint {startPosition} at {DateTime.Now}.");
+//            IsCatchingUp = true;
+//            CatchupEventCount = 0;
+//            OnCompletedFired = false;
+//            IsStarted = true;
+//            Connection = EventStoreConnectionFactoryFactory.Create(ConnectionString, Logger);
+//            
+//            var settings = new CatchUpSubscriptionSettings(MaxLiveQueueMessage, BatchSize, true, false);
+//            if (startPosition == AllCheckpoint.AllStart)
+//            {
+//                var slice = Connection.ReadStreamEventsBackwardAsync(_streamName, Position.End, 1, false, UserCredentials).Result;
+//                LastAllPosition = slice.FromPosition;
+//            }
+//
+//            Subscription = Connection.SubscribeToStreamFrom(_streamName,
+//                startPosition,
+//                settings,
+//                EventAppeared,
+//                LiveProcessingStarted,
+//                SubscriptionDropped,
+//                UserCredentials);
+//            
+//            Logger.LogInformation("Catch-up subscription started from checkpoint {StartPosition} at {Time}.", startPosition, DateTime.Now);
+//            CatchupWatch.Restart();
         }
     }
 }

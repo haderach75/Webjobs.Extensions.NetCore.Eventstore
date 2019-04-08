@@ -7,13 +7,14 @@
     <Authors>Michael Hultman</Authors>
     <Company>Collectorbank AB</Company>
     <PackageProjectUrl>https://github.com/haderach75/Webjobs.Extensions.NetCore.Eventstore</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/haderach75/Webjobs.Extensions.NetCore.Eventstore/blob/master/LICENSE</PackageLicenseUrl>
+    <License>https://github.com/haderach75/Webjobs.Extensions.NetCore.Eventstore/blob/master/LICENSE</License>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageVersion>1.0.16</PackageVersion>
+    <PackageVersion>1.1.0-beta</PackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EventStore.ClientAPI.NetCore" Version="4.1.0.23" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="3.0.0" />
     <PackageReference Include="System.Reactive" Version="4.1.0" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.9.0" />
   </ItemGroup>
 </Project>
