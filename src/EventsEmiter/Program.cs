@@ -2,6 +2,7 @@
 using System.Net;
 using System.Reactive.Linq;
 using System.Text;
+using System.Threading;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.SystemData;
 using Newtonsoft.Json;
@@ -19,18 +20,20 @@ namespace EventsEmitter
             Console.WriteLine("Press Enter to start emiting some test events.");
             Console.ReadLine();
 
-            var s1 = Observable.Timer(TimeSpan.Zero, TimeSpan.FromMilliseconds(10))
-                .Subscribe(x => EmitEvent(connection, "stream", x));
+            var s1 = Observable.Timer(TimeSpan.Zero, TimeSpan.FromMilliseconds(100))
+                .Subscribe(x => EmitEvent(connection, "stream"));
 
             Console.ReadLine();
             s1.Dispose();
             connection.Close();
         }
 
-        static void EmitEvent(IEventStoreConnection connection, string stream, long number)
+        private static int _number = 0;
+        static void EmitEvent(IEventStoreConnection connection, string stream)
         {
-            Console.WriteLine($"Sending event number {number} to stream {stream} " + stream);
-            connection.AppendToStreamAsync(stream, ExpectedVersion.Any, CreateEvent(number, stream));
+            Console.WriteLine($"Sending event number {_number} to stream {stream} " + stream);
+            connection.AppendToStreamAsync(stream, ExpectedVersion.Any, CreateEvent(_number, stream));
+            Interlocked.Increment(ref _number);
         }
 
         static EventData[] CreateEvent(long number, string stream)

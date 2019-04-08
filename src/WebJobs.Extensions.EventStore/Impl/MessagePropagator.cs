@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using EventStore.ClientAPI;
 using Microsoft.Extensions.Logging;
 
 namespace WebJobs.Extensions.EventStore.Impl
@@ -76,18 +79,6 @@ namespace WebJobs.Extensions.EventStore.Impl
         
         public async Task OnEventReceived(StreamEvent streamEvent)
         {
-            //            if (!(eventFilter is NullEventFilter))
-//            {
-//                var outObserver=timingBlock.AsObserver();
-//                inBlock.AsObservable()
-//                    .ApplyFilter(eventFilter)
-//                    .Subscribe(outObserver);
-//            }
-//            else
-//            {
-//                inBlock.LinkTo(timingBlock, options);
-//            }
-            
             _semaphore.Wait();
             await _bufferBlock.SendAsync(streamEvent);
         }
