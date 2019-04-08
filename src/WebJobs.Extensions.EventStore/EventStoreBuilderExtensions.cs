@@ -25,6 +25,7 @@ namespace WebJobs.Extensions.EventStore
             builder.Services.TryAddSingleton<INameResolver, NullNameResolver>();
             builder.Services.TryAddSingleton<EventProcessor>();
             builder.Services.TryAddSingleton<MessagePropagator>();
+            builder.Services.TryAddSingleton<IMessagePropagator>(provider => provider.GetService<MessagePropagator>());
 
             return builder;
         }

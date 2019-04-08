@@ -6,12 +6,12 @@ namespace WebJobs.Extensions.EventStore.Impl
     public class SubscriptionProvider : ISubscriptionProvider
     {
         private readonly EventStoreOptions _eventStoreOptions;
-        private readonly MessagePropagator _messagePropagator;
+        private readonly IMessagePropagator _messagePropagator;
         private readonly IEventStoreConnectionFactory _eventStoreConnectionFactory;
         private readonly ILoggerFactory _loggerFactory;
 
         public SubscriptionProvider(IOptions<EventStoreOptions> eventStoreOptions,
-                                    MessagePropagator messagePropagator,
+                                    IMessagePropagator messagePropagator,
                                     IEventStoreConnectionFactory eventStoreConnectionFactory,
                                     ILoggerFactory loggerFactory)
         {
