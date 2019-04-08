@@ -1,4 +1,7 @@
-﻿using Microsoft.Azure.WebJobs.Host;
+﻿using System;
+using System.Reactive.Linq;
+using EventStore.ClientAPI;
+using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using WebJobs.Extensions.EventStore.Impl;

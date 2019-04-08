@@ -18,7 +18,6 @@ namespace WebJobs.Extensions.EventStore
         private readonly ISubscriptionProvider _subscriptionProvider;
         private readonly EventProcessor _eventProcessor;
         private readonly MessagePropagator _messagePropagator;
-        private readonly IEventFilter _eventFilter;
         private readonly IOptions<EventStoreOptions> _options;
         private readonly INameResolver _nameResolver;
 
@@ -26,7 +25,6 @@ namespace WebJobs.Extensions.EventStore
                                         ISubscriptionProvider subscriptionProvider,
                                         EventProcessor eventProcessor,
                                         MessagePropagator messagePropagator,
-                                        IEventFilter eventFilter,
                                         INameResolver nameResolver,
                                         IOptions<EventStoreOptions> options)
         {
@@ -34,7 +32,6 @@ namespace WebJobs.Extensions.EventStore
             _subscriptionProvider = subscriptionProvider;
             _eventProcessor = eventProcessor;
             _messagePropagator = messagePropagator;
-            _eventFilter = eventFilter;
             _options = options;
             _nameResolver = nameResolver;
         }
@@ -58,8 +55,7 @@ namespace WebJobs.Extensions.EventStore
                                                                                   subject,
                                                                                   _nameResolver,
                                                                                   _loggerFactory,
-                                                                                  _subscriptionProvider, 
-                                                                                  _eventFilter);
+                                                                                  _subscriptionProvider);
             context.AddBindingRule<EventTriggerAttribute>().BindToTrigger(triggerBindingProvider);
             
             var liveProcessingStartedBindingProvider = new LiveProcessingStartedAttributeBindingProvider(subject, _loggerFactory);

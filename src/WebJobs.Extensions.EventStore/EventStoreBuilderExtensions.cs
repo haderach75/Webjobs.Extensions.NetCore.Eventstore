@@ -19,8 +19,7 @@ namespace WebJobs.Extensions.EventStore
 
             builder.AddExtension<EventStoreConfigProvider>()
                 .BindOptions<EventStoreOptions>();
-
-            builder.Services.TryAddSingleton<IEventFilter, NullEventFilter>();
+           
             builder.Services.TryAddSingleton<IEventStoreConnectionFactory, EventStoreConnectionFactory>();
             builder.Services.TryAddSingleton<ISubscriptionProvider, SubscriptionProvider>();
             builder.Services.TryAddSingleton<INameResolver, NullNameResolver>();

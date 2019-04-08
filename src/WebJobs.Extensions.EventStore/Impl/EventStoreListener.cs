@@ -17,7 +17,6 @@ namespace WebJobs.Extensions.EventStore.Impl
         private readonly EventProcessor _eventProcessor;
         private MessagePropagator _messagePropagator;
         private IEventStoreSubscription _eventStoreSubscription;
-        private readonly IEventFilter _eventFilter;
         private readonly IObserver<SubscriptionContext> _observer;
         private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly ILogger _logger;
@@ -30,7 +29,6 @@ namespace WebJobs.Extensions.EventStore.Impl
                                   EventProcessor eventProcessor,
                                   MessagePropagator messagePropagator,
                                   IEventStoreSubscription eventStoreSubscription,
-                                  IEventFilter eventFilter,
                                   IObserver<SubscriptionContext> observer,
                                   int batchSize,
                                   int timeOutInMilliSeconds,
@@ -45,18 +43,16 @@ namespace WebJobs.Extensions.EventStore.Impl
             _eventProcessor = eventProcessor;
             _messagePropagator = messagePropagator;
             _eventStoreSubscription = eventStoreSubscription;
-            _eventFilter = eventFilter;
             _observer = observer;
-            
-            _messagePropagator.Subscribe(TimeSpan.FromMilliseconds(_timeOutInMilliSeconds),
-                _batchSize,ProcessEventAsync,
-                OnCompleted,
-                OnError,
-                _eventFilter);
         }
         
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            _messagePropagator.Subscribe(TimeSpan.FromMilliseconds(_timeOutInMilliSeconds),
+                _batchSize,ProcessEventAsync,
+                OnCompleted,
+                OnError);
+            
             _logger.LogInformation("Message propagator started.");
 
             return _eventStoreSubscription.StartAsync(cancellationToken, _batchSize);
@@ -72,8 +68,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             _messagePropagator.Subscribe(TimeSpan.FromMilliseconds(_timeOutInMilliSeconds),
                 _batchSize,ProcessEventAsync,
                 OnCompleted,
-                OnError,
-                _eventFilter);
+                OnError);
         }
         
         private void OnCompleted()

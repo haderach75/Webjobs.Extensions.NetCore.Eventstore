@@ -25,8 +25,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             int capacity,
             Func<IEnumerable<StreamEvent>, Task> onNext,
             Action onCompleted = null,
-            Action<Exception> onError = null,
-            IEventFilter eventFilter = null)
+            Action<Exception> onError = null)
         {
             _onCompleted = onCompleted;
             _onError = onError;
@@ -34,7 +33,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             _semaphore = new SemaphoreSlim(capacity, capacity);
             
             var options = new DataflowLinkOptions {PropagateCompletion = true};
-            _bufferBlock = CreateBuffer(timeout, capacity, eventFilter);
+            _bufferBlock = CreateBuffer(timeout, capacity);
             _outputBlock = new ActionBlock<IList<StreamEvent>>(async m =>
             {
                 try
@@ -49,7 +48,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             _bufferBlock.LinkTo(_outputBlock, options);
         }
 
-        private IPropagatorBlock<StreamEvent,IList<StreamEvent>> CreateBuffer(TimeSpan timeSpan, int capacity, IEventFilter eventFilter = null)
+        private IPropagatorBlock<StreamEvent,IList<StreamEvent>> CreateBuffer(TimeSpan timeSpan, int capacity)
         {
             var options = new DataflowLinkOptions {PropagateCompletion = true};
             var inBlock = new BufferBlock<StreamEvent>();
@@ -63,17 +62,8 @@ namespace WebJobs.Extensions.EventStore.Impl
                 return streamEvent;
             });
 
-            if (!(eventFilter is NullEventFilter))
-            {
-                var outObserver=timingBlock.AsObserver();
-                inBlock.AsObservable()
-                    .ApplyFilter(eventFilter)
-                    .Subscribe(outObserver);
-            }
-            else
-            {
-                inBlock.LinkTo(timingBlock, options);
-            }
+            inBlock.LinkTo(timingBlock, options);
+
             timingBlock.LinkTo(batchBlock, options);
             
             return DataflowBlock.Encapsulate(inBlock, batchBlock);
@@ -86,6 +76,18 @@ namespace WebJobs.Extensions.EventStore.Impl
         
         public async Task OnEventReceived(StreamEvent streamEvent)
         {
+            //            if (!(eventFilter is NullEventFilter))
+//            {
+//                var outObserver=timingBlock.AsObserver();
+//                inBlock.AsObservable()
+//                    .ApplyFilter(eventFilter)
+//                    .Subscribe(outObserver);
+//            }
+//            else
+//            {
+//                inBlock.LinkTo(timingBlock, options);
+//            }
+            
             _semaphore.Wait();
             await _bufferBlock.SendAsync(streamEvent);
         }
