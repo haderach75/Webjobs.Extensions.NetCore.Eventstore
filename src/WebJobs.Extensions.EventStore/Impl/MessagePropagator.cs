@@ -63,7 +63,7 @@ namespace WebJobs.Extensions.EventStore.Impl
                 return streamEvent;
             });
 
-            if (eventFilter != null)
+            if (!(eventFilter is NullEventFilter))
             {
                 var outObserver=timingBlock.AsObserver();
                 inBlock.AsObservable()
