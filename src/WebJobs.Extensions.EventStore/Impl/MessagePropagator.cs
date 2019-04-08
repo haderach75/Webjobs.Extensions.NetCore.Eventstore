@@ -49,7 +49,7 @@ namespace WebJobs.Extensions.EventStore.Impl
             _bufferBlock.LinkTo(_outputBlock, options);
         }
 
-        private IPropagatorBlock<StreamEvent,IList<StreamEvent>> CreateBuffer(TimeSpan timeSpan, int capacity, IEventFilter eventFilter)
+        private IPropagatorBlock<StreamEvent,IList<StreamEvent>> CreateBuffer(TimeSpan timeSpan, int capacity, IEventFilter eventFilter = null)
         {
             var options = new DataflowLinkOptions {PropagateCompletion = true};
             var inBlock = new BufferBlock<StreamEvent>();
@@ -62,12 +62,18 @@ namespace WebJobs.Extensions.EventStore.Impl
                 timer.Change(timeSpan, Timeout.InfiniteTimeSpan);
                 return streamEvent;
             });
-            
-            var outObserver=timingBlock.AsObserver();
-            inBlock.AsObservable()
-                .ApplyFilter(eventFilter)
-                .Subscribe(outObserver);
-            
+
+            if (eventFilter != null)
+            {
+                var outObserver=timingBlock.AsObserver();
+                inBlock.AsObservable()
+                    .ApplyFilter(eventFilter)
+                    .Subscribe(outObserver);
+            }
+            else
+            {
+                inBlock.LinkTo(timingBlock, options);
+            }
             timingBlock.LinkTo(batchBlock, options);
             
             return DataflowBlock.Encapsulate(inBlock, batchBlock);
