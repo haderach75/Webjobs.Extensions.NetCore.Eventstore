@@ -147,7 +147,7 @@ namespace WebJobs.Extensions.EventStore.Impl
                     _messagePropagator,
                     eventStoreSubscription,
                     _observer,
-                    _attribute.BatchSize * 2,
+                    _attribute.BatchSize,
                     _attribute.TimeOutInMilliSeconds,
                     _attribute.TriggerName,
                     _loggerFactory.CreateLogger<EventStoreListener>());

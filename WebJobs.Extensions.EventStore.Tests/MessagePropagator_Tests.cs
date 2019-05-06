@@ -19,7 +19,7 @@ namespace WebJobs.Extensions.EventStore.Tests
             var receivedItems = new List<StreamEvent>();
             
             //Build the pipeline
-            var sut = new MessagePropagator(new NullLogger<MessagePropagator>());
+            var sut = new MessagePropagator(new NullLogger<MessagePropagator>(), new NullEventFilter());
             
             sut.Subscribe(TimeSpan.FromMilliseconds(1), 10, (e) =>
                 {

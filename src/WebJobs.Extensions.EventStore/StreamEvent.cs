@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace WebJobs.Extensions.EventStore.Impl
+namespace WebJobs.Extensions.EventStore
 {
     public interface IStreamEvent<out TEvent> 
     {  

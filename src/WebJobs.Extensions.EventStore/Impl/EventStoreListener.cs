@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs.Host.Executors;
@@ -15,7 +14,7 @@ namespace WebJobs.Extensions.EventStore.Impl
     {
         private readonly ITriggeredFunctionExecutor _executor;
         private readonly EventProcessor _eventProcessor;
-        private MessagePropagator _messagePropagator;
+        private readonly MessagePropagator _messagePropagator;
         private IEventStoreSubscription _eventStoreSubscription;
         private readonly IObserver<SubscriptionContext> _observer;
         private CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
@@ -49,13 +48,14 @@ namespace WebJobs.Extensions.EventStore.Impl
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _messagePropagator.Subscribe(TimeSpan.FromMilliseconds(_timeOutInMilliSeconds),
-                _batchSize,ProcessEventAsync,
+                _batchSize,
+                ProcessEventAsync,
                 OnCompleted,
                 OnError);
             
             _logger.LogInformation("Message propagator started.");
 
-            return _eventStoreSubscription.StartAsync(cancellationToken, _batchSize);
+            return _eventStoreSubscription.StartAsync(cancellationToken, _batchSize * 4);
         }
 
         private void OnError(Exception obj)

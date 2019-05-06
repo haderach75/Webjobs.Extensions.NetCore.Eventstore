@@ -1,11 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using EventStore.ClientAPI;
 using Microsoft.Extensions.Logging;
 
 namespace WebJobs.Extensions.EventStore.Impl
@@ -13,19 +10,21 @@ namespace WebJobs.Extensions.EventStore.Impl
     public class MessagePropagator : IMessagePropagator
     {
         private readonly ILogger<MessagePropagator> _logger;
+        private readonly IEventFilter _eventFilter;
         private Action _onCompleted;
         private Action<Exception> _onError;
         private IPropagatorBlock<StreamEvent, IList<StreamEvent>> _bufferBlock;
         private SemaphoreSlim _semaphore;
         private ActionBlock<IList<StreamEvent>> _outputBlock;
 
-        public MessagePropagator(ILogger<MessagePropagator> logger)
+        public MessagePropagator(ILogger<MessagePropagator> logger, IEventFilter eventFilter)
         {
             _logger = logger;
+            _eventFilter = eventFilter;
         }
 
         public void Subscribe(TimeSpan timeout,
-            int capacity,
+            int batchSize,
             Func<IEnumerable<StreamEvent>, Task> onNext,
             Action onCompleted = null,
             Action<Exception> onError = null)
@@ -33,10 +32,12 @@ namespace WebJobs.Extensions.EventStore.Impl
             _onCompleted = onCompleted;
             _onError = onError;
 
-            _semaphore = new SemaphoreSlim(capacity, capacity);
+            var capacity = batchSize * 4;
+
+            _semaphore = new SemaphoreSlim(capacity);
             
             var options = new DataflowLinkOptions {PropagateCompletion = true};
-            _bufferBlock = CreateBuffer(timeout, capacity);
+            _bufferBlock = CreateBuffer(timeout, batchSize);
             _outputBlock = new ActionBlock<IList<StreamEvent>>(async m =>
             {
                 try
@@ -51,12 +52,12 @@ namespace WebJobs.Extensions.EventStore.Impl
             _bufferBlock.LinkTo(_outputBlock, options);
         }
 
-        private IPropagatorBlock<StreamEvent,IList<StreamEvent>> CreateBuffer(TimeSpan timeSpan, int capacity)
+        private IPropagatorBlock<StreamEvent,IList<StreamEvent>> CreateBuffer(TimeSpan timeSpan, int batchSize)
         {
             var options = new DataflowLinkOptions {PropagateCompletion = true};
             var inBlock = new BufferBlock<StreamEvent>();
             
-            var batchBlock = new BatchBlock<StreamEvent>(capacity, new GroupingDataflowBlockOptions { Greedy = true });
+            var batchBlock = new BatchBlock<StreamEvent>(batchSize, new GroupingDataflowBlockOptions { Greedy = true });
             
             var timer = new Timer(_ => batchBlock.TriggerBatch());
             var timingBlock = new TransformBlock<StreamEvent, StreamEvent>(streamEvent =>
@@ -79,6 +80,9 @@ namespace WebJobs.Extensions.EventStore.Impl
         
         public async Task OnEventReceived(StreamEvent streamEvent)
         {
+            if (!_eventFilter.Filter(streamEvent))
+                return;
+            
             _semaphore.Wait();
             await _bufferBlock.SendAsync(streamEvent);
         }

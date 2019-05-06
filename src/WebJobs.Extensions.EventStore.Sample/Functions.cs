@@ -17,7 +17,7 @@ namespace WebJobs.Extensions.EventStore.Sample
         }
 
         [Disable(WebJobDisabledSetting)]
-        public async Task ProcessEvents([EventTrigger(BatchSize = 10, TimeOutInMilliSeconds = 10, TriggerName = "Custom trigger name")] IEnumerable<StreamEvent> events)
+        public async Task ProcessEvents([EventTrigger(BatchSize = 50, TimeOutInMilliSeconds = 10, TriggerName = "Custom trigger name")] IEnumerable<StreamEvent> events)
         {
             foreach (var resolvedEvent in events)
             {
